@@ -1,0 +1,1804 @@
+.page {
+  animation: fadeIn 0.3s ease forwards;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
+  gap: 16px;
+  min-height: calc(100vh - 100px);
+  position: relative;
+}
+
+.pageLofi {
+  isolation: isolate;
+}
+
+.lofiScreenBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.lofiScreenBackdropImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.34) saturate(0.9) contrast(1.03);
+}
+
+.lofiScreenBackdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 10, 18, 0.35), rgba(6, 10, 18, 0.62));
+}
+
+.timerPanel {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 24px;
+  background: #1e1f23;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.timerPanelFocusOnly {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.timerPanel > * {
+  position: relative;
+  z-index: 2;
+}
+
+.timerPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.worldIdle::before {
+  opacity: 0.35;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0));
+}
+
+.worldRain::before {
+  opacity: 0.8;
+  background:
+    linear-gradient(180deg, rgba(28, 176, 246, 0.16), rgba(28, 176, 246, 0.02)),
+    repeating-linear-gradient(110deg, rgba(147, 197, 253, 0.16) 0 1px, transparent 1px 14px);
+  animation: rainShift 14s linear infinite;
+}
+
+.worldNature::before {
+  opacity: 0.85;
+  background:
+    radial-gradient(circle at 20% 14%, rgba(88, 204, 2, 0.2), rgba(88, 204, 2, 0) 44%),
+    radial-gradient(circle at 78% 84%, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0) 48%);
+  animation: forestBreathe 7s ease-in-out infinite;
+}
+
+.worldCustom::before {
+  opacity: 0.72;
+  background:
+    linear-gradient(145deg, rgba(129, 140, 248, 0.18), rgba(56, 189, 248, 0.05) 50%, rgba(88, 204, 2, 0.08));
+  animation: customPulse 6s ease-in-out infinite;
+}
+
+.worldLofi::before {
+  opacity: 0.32;
+  background: radial-gradient(circle at center, rgba(109, 118, 255, 0.2), rgba(109, 118, 255, 0) 60%);
+}
+
+.contextPanel {
+  position: relative;
+  z-index: 2;
+  background: #1e1f23;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 18px;
+  overflow-y: auto;
+  max-height: calc(100vh - 100px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.26);
+}
+
+.contextPanelLofi,
+.pageLofi .timerPanel {
+  background: rgba(9, 14, 26, 0.48);
+  border-color: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.contextHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.contextHideBtn {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(16, 24, 40, 0.8);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contextRevealBtn {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 18, 31, 0.86);
+  color: var(--text-primary);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.fullLofiRevealBtn {
+  position: fixed;
+  right: 14px;
+  top: calc(50% + 58px);
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 18, 31, 0.86);
+  color: var(--text-primary);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.phaseTag {
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.phaseTagFocus {
+  background: rgba(88, 204, 2, 0.14);
+  color: #58cc02;
+  border: 1px solid rgba(88, 204, 2, 0.34);
+}
+
+.phaseTagBreak {
+  background: rgba(28, 176, 246, 0.12);
+  color: #1cb0f6;
+  border: 1px solid rgba(28, 176, 246, 0.28);
+}
+
+.phaseTagIdle {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.timerCircle {
+  position: relative;
+  width: min(78vw, 300px);
+  height: min(78vw, 300px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timerCircle::after {
+  content: '';
+  position: absolute;
+  width: 246px;
+  height: 246px;
+  border-radius: 50%;
+  background: rgba(16, 22, 34, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.timerSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timerBgCircle {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 7;
+}
+
+.timerProgressCircle {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.timerProgressFocus {
+  stroke: #58cc02;
+  filter: drop-shadow(0 0 8px rgba(88, 204, 2, 0.35));
+}
+
+.timerProgressBreak {
+  stroke: #1cb0f6;
+  filter: drop-shadow(0 0 8px rgba(28, 176, 246, 0.34));
+}
+
+.timerCenter {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.timerIcon {
+  width: 44px;
+  height: 44px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.timerTime {
+  font-size: clamp(44px, 7vw, 64px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.timerTimeFocus { color: #58cc02; }
+.timerTimeBreak { color: #1cb0f6; }
+.timerTimeIdle { color: rgba(255, 255, 255, 0.72); }
+
+.sessionsCount {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.controlBtn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.controlBtn:hover {
+  transform: translateY(-1px);
+}
+
+.controlBtnPrimary {
+  background: linear-gradient(180deg, #6d76ff 0%, #4e59f5 100%);
+  color: white;
+  box-shadow: 0 14px 28px rgba(78, 89, 245, 0.32);
+}
+
+.controlBtnSecondary {
+  background: #1a1f2b;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-secondary);
+}
+
+.controlBtnSecondary:hover {
+  color: var(--text-primary);
+  background: #222a3a;
+}
+
+.controlBtnSuccess {
+  background: rgba(88, 204, 2, 0.14);
+  border: 1px solid rgba(88, 204, 2, 0.3);
+  color: #58cc02;
+}
+
+.controlBtnSuccess:hover {
+  background: rgba(88, 204, 2, 0.2);
+}
+
+.controlBtnDanger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  color: #ef4444;
+}
+
+.controlBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.taskSelector {
+  width: 100%;
+  max-width: 460px;
+  margin-bottom: 24px;
+}
+
+.taskSelectorCard,
+.taskDetailCard {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #171f31;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.taskSelectorLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.taskSelectorDropdown {
+  width: 100%;
+  padding: 12px 40px 12px 14px;
+  background-color: #171c27;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  appearance: none;
+  transition: all var(--transition-fast);
+}
+
+.taskSelectorDropdown:focus {
+  border-color: #6d76ff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(109, 118, 255, 0.2);
+}
+
+.taskSelectorDropdown option {
+  background: #161d2e;
+  color: var(--text-primary);
+}
+
+.audioSection {
+  width: 100%;
+  max-width: 460px;
+  margin-top: 2px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #171c27;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.audioTitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.audioGrid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ambientSection {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  padding-top: 10px;
+}
+
+.ambientHeader {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ambientPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ambientPill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #172234;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ambientPillActive {
+  border-color: rgba(40, 182, 252, 0.42);
+  background: rgba(40, 182, 252, 0.15);
+  color: #b8e8ff;
+}
+
+.ambientControlDock {
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #111b2d;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.ambientControlLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ambientControlValue {
+  font-size: 12px;
+  font-weight: 700;
+  color: #cdd4ff;
+}
+
+.ambientControlSlider,
+.trackVolumeSlider {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  appearance: none;
+  background: linear-gradient(90deg, #4ec5ff 0%, #6d76ff 100%);
+}
+
+.ambientControlSlider::-webkit-slider-thumb,
+.trackVolumeSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: #c2cdff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ambientMixerItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ambientSlider {
+  width: 100%;
+  min-width: 110px;
+  accent-color: #6d76ff;
+}
+
+.audioBtn,
+.audioUploadBtn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  transition: all 0.16s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audioBtn {
+  background: #1a2230;
+}
+
+.audioBtn:hover,
+.audioUploadBtn:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.audioBtnActive {
+  background: rgba(109, 118, 255, 0.18);
+  border-color: rgba(109, 118, 255, 0.45);
+  color: #a9b0ff;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.audioUploadBtn {
+  background: rgba(88, 204, 2, 0.12);
+  color: #9ee56d;
+  border-color: rgba(88, 204, 2, 0.3);
+}
+
+.volumeSlider {
+  width: 100%;
+  margin-top: 10px;
+  accent-color: #6d76ff;
+}
+
+.lofiPlayerWrap {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px;
+  background: #11192a;
+}
+
+.lofiSceneOverlay {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.lofiSceneBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 18, 31, 0.65);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+}
+
+.lofiSceneCount {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 96px;
+  text-align: center;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.lofiGifStage {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
+  background: #0f1729;
+}
+
+.lofiGifImage {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  filter: brightness(0.84) saturate(1.05);
+}
+
+.lofiGifControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 16, 30, 0.9);
+}
+
+.lofiGifBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-secondary);
+  background: #1a2237;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lofiGifBtn:hover {
+  color: var(--text-primary);
+  border-color: rgba(109, 118, 255, 0.45);
+}
+
+.lofiGifIndex {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.lofiCustomSourceWrap {
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 20, 36, 0.95);
+}
+
+.lofiCustomSourceLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.lofiLinkBtn {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #1b243a;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+
+.lofiCustomSourceInputRow {
+  display: flex;
+  gap: 6px;
+}
+
+.lofiUrlInput {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #17233c;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.lofiUrlInput:focus {
+  outline: none;
+  border-color: rgba(109, 118, 255, 0.5);
+}
+
+.lofiApplyBtn {
+  border-radius: 9px;
+  padding: 0 12px;
+  border: 1px solid rgba(109, 118, 255, 0.4);
+  background: rgba(109, 118, 255, 0.18);
+  color: #bac2ff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lofiErrorText {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #ff8e8e;
+}
+
+.youtubePlayerPanel {
+  margin-top: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: #151f34;
+  padding: 12px;
+}
+
+.youtubePanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #d7dcff;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.youtubeInputRow {
+  display: flex;
+  gap: 6px;
+}
+
+.youtubeLibraryRow {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.tracklistShell {
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #13243a 0%, #0f1a2d 100%);
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.tracklistNowPlaying {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f1828;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.trackArtworkWrap {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.trackArtwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trackNowMeta {
+  min-width: 0;
+}
+
+.trackNowLabel {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.trackNowTitle {
+  margin: 4px 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackNowSub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tracklistToolbar {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.uploadLinkBtn {
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  color: #8ff0b6;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+
+.uploadLinkBtn:hover {
+  color: #bcffd6;
+}
+
+.trackControlsBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackPrimaryBtn,
+.trackPlayMainBtn {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #1a2840;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.trackPlayMainBtn {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7a87ff 0%, #5d69fa 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.trackPlayMainBtn:disabled,
+.trackPrimaryBtn:disabled {
+  opacity: 0.5;
+}
+
+.trackVolumeWrap {
+  position: relative;
+}
+
+.trackVolumePanel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 7;
+  min-width: 180px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #101b2d;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.playlistBar {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.playlistChip {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #18253b;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.playlistChipActive {
+  background: rgba(34, 211, 238, 0.18);
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #b4fbff;
+}
+
+.playlistCreateRow {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.playlistInput,
+.playlistTargetSelect {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #17243b;
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.playlistCreateBtn {
+  border-radius: 10px;
+  border: 1px solid rgba(140, 211, 89, 0.5);
+  background: rgba(140, 211, 89, 0.2);
+  color: #c8f5a6;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trackSearchRow {
+  margin-top: 8px;
+}
+
+.trackSearchInput {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #14223a;
+  color: var(--text-primary);
+  padding: 9px 11px;
+  font-size: 12px;
+}
+
+.trackSearchInput:focus {
+  outline: none;
+  border-color: rgba(123, 193, 255, 0.65);
+}
+
+.playlistModalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 10, 20, 0.62);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.playlistModal {
+  width: min(420px, 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  background: #101b2f;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.playlistModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.playlistModalHeader h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.playlistModalCloseBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #15243d;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playlistTargetRow {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.trackRows {
+  margin-top: 10px;
+  max-height: 260px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.trackRow {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #152238;
+  color: var(--text-secondary);
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trackRowActive {
+  border-color: rgba(109, 118, 255, 0.5);
+  background: rgba(109, 118, 255, 0.16);
+  color: #e5e9ff;
+}
+
+.trackRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trackRowIndex {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 24px;
+}
+
+.trackRowTitle {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackRowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackRowDuration {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.trackRowAddBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 211, 89, 0.55);
+  background: rgba(140, 211, 89, 0.16);
+  color: #c8f5a6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.mixerMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mixerSavedText {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #9ee56d;
+}
+
+.mixerChannelsGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.mixerChannelCard {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: #131d32;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.mixerChannelTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.mixerSampleControl {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.mixerSampleSelect {
+  width: 100%;
+  min-width: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #18243b;
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.mixerSampleSelect:focus {
+  outline: none;
+  border-color: rgba(109, 118, 255, 0.55);
+}
+
+.mixerSampleLabel {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mixerVolumeRow {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tracklistPlayerControls {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trackPlayerBtn {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #1b2740;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 10px;
+}
+
+.trackPlayerBtn:disabled {
+  opacity: 0.5;
+}
+
+.tracklistContainer {
+  margin-top: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.tracklistItem {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #172237;
+  color: var(--text-secondary);
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tracklistItemActive {
+  border-color: rgba(109, 118, 255, 0.5);
+  background: rgba(109, 118, 255, 0.16);
+  color: #d8ddff;
+}
+
+.trackName {
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trackDuration {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mixerChannelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.libraryEmpty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 4px;
+}
+
+.youtubeVolumeLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 96px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.youtubeUrlInput {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #17243d;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.youtubeUrlInput:focus {
+  outline: none;
+  border-color: rgba(109, 118, 255, 0.5);
+}
+
+.youtubeApplyBtn {
+  border-radius: 9px;
+  padding: 0 12px;
+  border: 1px solid rgba(109, 118, 255, 0.4);
+  background: rgba(109, 118, 255, 0.18);
+  color: #bac2ff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.youtubeActionsRow {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.youtubeResetBtn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #1c2740;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.youtubeFrameShell {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0d1322;
+}
+
+.youtubeFrame {
+  width: 100%;
+  height: 240px;
+  border: 0;
+}
+
+.lofiAudioFrame {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+}
+
+.lofiIframeShell {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0d1322;
+}
+
+.lofiIframe {
+  width: 100%;
+  height: 172px;
+  border: 0;
+}
+
+.contextEmpty {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--text-muted);
+}
+
+.contextEmptyIcon {
+  margin: 0 auto 16px;
+  opacity: 0.3;
+}
+
+.contextEmpty p {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.contextTitle {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.contextHabit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #171c27;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.contextHabitIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contextHabitName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.contextTaskTitle {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+
+.contextDescription {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.66;
+}
+
+.contextDescription h1,
+.contextDescription h2,
+.contextDescription h3 {
+  color: var(--text-primary);
+  margin: 12px 0 8px;
+}
+
+.contextDescription ul,
+.contextDescription ol {
+  padding-left: 1.1rem;
+  margin: 8px 0 8px 0.2rem;
+  list-style-position: outside;
+}
+
+.contextDescription li {
+  margin: 4px 0;
+}
+
+.contextDescription strong {
+  color: var(--text-primary);
+}
+
+.contextDescription p {
+  margin-bottom: 6px;
+}
+
+.contextPomodoros {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.contextPomodoroCount {
+  font-weight: 800;
+  color: #6d76ff;
+}
+
+.pomodoroDots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pomodoroDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #131a2a;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  transition: all var(--transition-fast);
+}
+
+.pomodoroDotFilled {
+  background: #6d76ff;
+  border-color: #6d76ff;
+  box-shadow: 0 0 9px rgba(109, 118, 255, 0.42);
+}
+
+@keyframes rainShift {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 0, -140px 400px; }
+}
+
+@keyframes forestBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes customPulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 0.94; }
+}
+
+@media (max-width: 1160px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .timerPanel {
+    min-height: 62vh;
+  }
+
+  .contextPanel {
+    max-height: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .contextPanel {
+    max-height: none;
+  }
+
+  .timerPanel,
+  .contextPanel {
+    border-radius: 16px;
+  }
+
+  .controls {
+    gap: 8px;
+  }
+
+  .controlBtn {
+    width: 50px;
+    height: 50px;
+  }
+
+  .audioSection,
+  .taskSelector {
+    max-width: 100%;
+  }
+
+  .audioGrid {
+    gap: 6px;
+  }
+
+  .audioBtn,
+  .audioUploadBtn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .ambientControlDock {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .lofiIframe {
+    height: 150px;
+  }
+
+  .lofiGifImage {
+    height: 122px;
+  }
+
+  .lofiCustomSourceInputRow {
+    flex-direction: column;
+  }
+
+  .lofiApplyBtn {
+    width: 100%;
+    justify-content: center;
+    min-height: 34px;
+  }
+
+  .lofiSceneOverlay {
+    bottom: 10px;
+    transform: translateX(-50%);
+  }
+
+  .lofiSceneCount {
+    min-width: 88px;
+  }
+
+  .youtubeInputRow {
+    flex-direction: column;
+  }
+
+  .playlistCreateRow,
+  .playlistTargetRow,
+  .tracklistNowPlaying {
+    grid-template-columns: 1fr;
+  }
+
+  .trackArtworkWrap {
+    width: 100%;
+    height: 128px;
+  }
+
+  .trackVolumePanel {
+    left: 0;
+    right: auto;
+  }
+
+  .mixerSampleControl {
+    grid-template-columns: 1fr;
+  }
+
+  .youtubeApplyBtn {
+    width: 100%;
+    min-height: 34px;
+    justify-content: center;
+  }
+
+  .youtubeFrame {
+    height: 210px;
+  }
+
+  .contextRevealBtn {
+    right: 10px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .fullLofiRevealBtn {
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    top: calc(50% + 50px);
+  }
+}
+.tracklistNowPlayingCentered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 10px;
+  background: #0b1120;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.trackArtworkWrapCentered {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  margin-bottom: 16px;
+}
+
+.trackArtworkCentered {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trackNowMetaCentered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.trackNowLabelCentered {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 800;
+  color: #7a87ff;
+  letter-spacing: 0.1em;
+}
+
+.trackNowTitleCentered {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackNowSubCentered {
+  margin: 0;
+  font-size: 12px;
+  color: #8892b0;
+}
+
+.trackControlsCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.trackControlIconBtn {
+  background: transparent;
+  border: none;
+  color: #8892b0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trackControlIconBtn:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.trackControlIconBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.trackPlayMainBtnCenter {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #7a87ff 0%, #5d69fa 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(93, 105, 250, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trackPlayMainBtnCenter:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(93, 105, 250, 0.6);
+}
+
+.trackVolumeWrapCenter {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.trackFuncRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.trackFuncBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #bac2ff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trackFuncBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.searchExpandWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trackSearchInputExpand {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(122, 135, 255, 0.3);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  width: 140px;
+  outline: none;
+  animation: slideIn 0.2s ease-out forwards;
+}
+
+.trackSearchInputExpand:focus {
+  border-color: #7a87ff;
+}
+
+@keyframes slideIn {
+  from { width: 0; opacity: 0; padding: 8px 0; }
+  to { width: 140px; opacity: 1; padding: 8px 12px; }
+}
+
+.playlistChipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  justify-content: center;
+}

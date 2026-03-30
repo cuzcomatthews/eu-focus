@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?   @map("password_hash")
+  avatarUrl     String?   @map("avatar_url")
+  timezone      String    @default("America/Guayaquil")
+  focusDuration Int       @default(25) @map("focus_duration")
+  breakDuration Int       @default(5) @map("break_duration")
+  longBreakDuration Int   @default(15) @map("long_break_duration")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  habits        Habit[]
+  tasks         Task[]
+  sessions      PomodoroSession[]
+  streaks       Streak[]
+  squadMembers  SquadMember[]
+  squadPins     SquadPin[]
+  squadMessages SquadMessage[]
+  activityFeed  ActivityFeedEntry[]
+  audioFiles    AudioFile[]
+
+  @@map("users")
+}
+
+model Habit {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  name            String
+  iconSvg         String   @default("book") @map("icon_svg")
+  color           String   @default("#6366f1")
+  recurrenceType  String   @default("daily") @map("recurrence_type")
+  recurrenceCount Int      @default(1) @map("recurrence_count")
+  recurrenceDays  String   @default("") @map("recurrence_days")
+  emoji           String   @default("📚")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks    Task[]
+  sessions PomodoroSession[]
+  streaks  Streak[]
+
+  @@map("habits")
+}
+
+model Task {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  habitId             String    @map("habit_id")
+  title               String
+  descriptionHtml     String?   @map("description_html")
+  color               String    @default("#6366f1")
+  dueDate             DateTime? @map("due_date")
+  estimatedPomodoros  Int       @default(1) @map("estimated_pomodoros")
+  completedPomodoros  Int       @default(0) @map("completed_pomodoros")
+  status              String    @default("todo")
+  columnOrder         Int       @default(0) @map("column_order")
+  completedAt         DateTime? @map("completed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habit    Habit             @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  sessions PomodoroSession[]
+
+  @@map("tasks")
+}
+
+model PomodoroSession {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  taskId          String?  @map("task_id")
+  habitId         String?  @map("habit_id")
+  startedAt       DateTime @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationMinutes Int      @map("duration_minutes")
+  completed       Boolean  @default(false)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task  Task?  @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  habit Habit? @relation(fields: [habitId], references: [id], onDelete: SetNull)
+
+  @@map("pomodoro_sessions")
+}
+
+model Streak {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  type          String   @default("global")
+  habitId       String?  @map("habit_id")
+  currentCount  Int      @default(0) @map("current_count")
+  longestCount  Int      @default(0) @map("longest_count")
+  lastActiveDate DateTime? @map("last_active_date")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habit Habit? @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, habitId])
+  @@map("streaks")
+}
+
+model Squad {
+  id         String   @id @default(cuid())
+  name           String   @default("Concéntrate, bro")
+  maxMembers     Int      @default(10) @map("max_members")
+  streakCount    Int      @default(0) @map("streak_count")
+  lastActiveDate DateTime? @map("last_active_date")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  members    SquadMember[]
+  pins       SquadPin[]
+  messages   SquadMessage[]
+  activity   ActivityFeedEntry[]
+
+  @@map("squads")
+}
+
+model SquadMember {
+  id       String   @id @default(cuid())
+  squadId  String   @map("squad_id")
+  userId   String   @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  squad Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([squadId, userId])
+  @@map("squad_members")
+}
+
+model SquadPin {
+  id          String   @id @default(cuid())
+  squadId     String   @map("squad_id")
+  authorId    String   @map("author_id")
+  contentHtml String   @map("content_html")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  squad  Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("squad_pins")
+}
+
+model SquadMessage {
+  id        String   @id @default(cuid())
+  squadId   String   @map("squad_id")
+  authorId  String   @map("author_id")
+  content   String
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  squad  Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("squad_messages")
+}
+
+model ActivityFeedEntry {
+  id                   String   @id @default(cuid())
+  squadId              String   @map("squad_id")
+  userId               String   @map("user_id")
+  taskTitle            String   @map("task_title")
+  habitName            String   @map("habit_name")
+  durationMinutes      Int      @map("duration_minutes")
+  taskDescriptionPreview String? @map("task_description_preview")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  squad Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activity_feed_entries")
+}
+
+model AudioFile {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  name      String
+  blobUrl   String   @map("blob_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audio_files")
+}
