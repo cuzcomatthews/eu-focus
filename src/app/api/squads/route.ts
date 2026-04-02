@@ -114,10 +114,27 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'join') {
-    const squad = await prisma.squad.findUnique({
-      where: { id: squadId },
-      include: { _count: { select: { members: true } }, members: true },
-    });
+    const rawJoinValue = typeof squadId === 'string' ? squadId : '';
+    const normalizedJoinValue = rawJoinValue
+      .replace(/^JOIN-/i, '')
+      .trim()
+      .toLowerCase();
+
+    if (!normalizedJoinValue) {
+      return NextResponse.json({ error: 'Squad code is required' }, { status: 400 });
+    }
+
+    const squad = normalizedJoinValue.length >= 20
+      ? await prisma.squad.findUnique({
+          where: { id: normalizedJoinValue },
+          include: { _count: { select: { members: true } }, members: true },
+        })
+      : await prisma.squad.findFirst({
+          where: { id: { startsWith: normalizedJoinValue } },
+          include: { _count: { select: { members: true } }, members: true },
+          orderBy: { createdAt: 'desc' },
+        });
+
     if (!squad) return NextResponse.json({ error: 'Squad not found' }, { status: 404 });
     if (squad._count.members >= squad.maxMembers) {
       return NextResponse.json({ error: 'Squad is full' }, { status: 400 });
