@@ -267,13 +267,6 @@ export default function SquadsPage() {
   const joinSquad = async () => {
     if (!joinCode.trim()) return;
 
-    // The current join logic accepts squadId. We should modify it to lookup by code or id.
-    // For now, since the id length is long and JOIN code is substring, we might need a backend tweak. 
-    // Assuming backend takes the first 8 matching chars (or we just use full ID). Let's use the ID we get.
-    // Actually, backend needs the full ID currently. Since JOIN- is substring(0, 8), it's a bit tricky if we just trimmed it.
-    // I am sending an exact ID right now? No, the invite code is substring(0,8). 
-    // To make things simple, let's assume the user copies the whole ID or we fix backend to use exact ID.
-    // Let's call the API.
     const res = await fetch('/api/squads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -287,8 +280,14 @@ export default function SquadsPage() {
       setShowJoinModal(false);
       setJoinCode('');
     } else {
-      const err = await res.json();
-      alert(err.error || "Failed to join squad.");
+      let message = 'Failed to join squad.';
+      try {
+        const err = (await res.json()) as { error?: string };
+        if (err?.error) message = err.error;
+      } catch {
+        // Keep fallback message when server responds with empty/non-JSON payload.
+      }
+      alert(message);
     }
   };
 

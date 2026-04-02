@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     const isMember = squad.members.some(m => m.userId === session.user!.id);
     if (!isMember) {
       await prisma.squadMember.create({
-        data: { squadId, userId: session.user.id },
+        data: { squadId: squad.id, userId: session.user.id },
       });
     }
     return NextResponse.json({ success: true, id: squad.id });
