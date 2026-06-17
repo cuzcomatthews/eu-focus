@@ -14,6 +14,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import styles from './workspace.module.css';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import BreakItDownPanel from '@/components/BreakItDownPanel';
 
 interface Task {
   id: string;
@@ -60,11 +61,13 @@ const DAYS = [
 export default function WorkspacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'tasks' | 'habits' | 'calendar'>(
+  const [activeTab, setActiveTab] = useState<'tasks' | 'habits' | 'calendar' | 'breakdown'>(
     searchParams.get('tab') === 'habits'
       ? 'habits'
       : searchParams.get('tab') === 'calendar'
         ? 'calendar'
+        : searchParams.get('tab') === 'breakdown'
+          ? 'breakdown'
         : 'tasks'
   );
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -345,6 +348,7 @@ export default function WorkspacePage() {
         <button className={`${styles.tab} ${activeTab === 'tasks' ? styles.tabActive : ''}`} onClick={() => setActiveTab('tasks')}>TASKS</button>
         <button className={`${styles.tab} ${activeTab === 'habits' ? styles.tabActive : ''}`} onClick={() => setActiveTab('habits')}>HABITS</button>
         <button className={`${styles.tab} ${activeTab === 'calendar' ? styles.tabActive : ''}`} onClick={() => setActiveTab('calendar')}>CALENDAR</button>
+        <button className={`${styles.tab} ${activeTab === 'breakdown' ? styles.tabActive : ''}`} onClick={() => setActiveTab('breakdown')}>BREAK IT DOWN</button>
       </div>
 
       {activeTab === 'tasks' && (
@@ -564,6 +568,16 @@ export default function WorkspacePage() {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'breakdown' && (
+        <BreakItDownPanel
+          onTasksCreated={() => {
+            fetchTasks();
+            playSuccess();
+            setActiveTab('tasks');
+          }}
+        />
       )}
 
       {calendarTaskAction && (

@@ -46,7 +46,6 @@ export async function POST(req: NextRequest) {
   }
 
   let globalStreakResult = null;
-  // Update global streak
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -62,12 +61,20 @@ export async function POST(req: NextRequest) {
     let newCount = globalStreak.currentCount;
     let streakIncreased = false;
 
-    if (!lastActive || lastActive < yesterday) {
-      newCount = 1; // Reset streak
+    if (!lastActive) {
+      newCount = 1;
       streakIncreased = true;
-    } else if (lastActive < today) {
-      newCount = globalStreak.currentCount + 1;
-      streakIncreased = true;
+    } else {
+      const lastActiveDate = new Date(lastActive);
+      lastActiveDate.setHours(0, 0, 0, 0);
+      
+      if (lastActiveDate < yesterday) {
+        newCount = 1;
+        streakIncreased = true;
+      } else if (lastActiveDate.getTime() === yesterday.getTime()) {
+        newCount = globalStreak.currentCount + 1;
+        streakIncreased = true;
+      }
     }
 
     const updated = await prisma.streak.update({
@@ -92,7 +99,6 @@ export async function POST(req: NextRequest) {
     globalStreakResult = { currentCount: created.currentCount, increased: true };
   }
 
-  // Update habit streak wrapper (same logic as before but shortened here for clarity)
   if (habitId) {
     const habitStreak = await prisma.streak.findFirst({
       where: { userId, type: 'habit', habitId },
@@ -104,10 +110,18 @@ export async function POST(req: NextRequest) {
       yesterday.setDate(yesterday.getDate() - 1);
 
       let newCount = habitStreak.currentCount;
-      if (!lastActive || lastActive < yesterday) {
+
+      if (!lastActive) {
         newCount = 1;
-      } else if (lastActive < today) {
-        newCount = habitStreak.currentCount + 1;
+      } else {
+        const lastActiveDate = new Date(lastActive);
+        lastActiveDate.setHours(0, 0, 0, 0);
+        
+        if (lastActiveDate < yesterday) {
+          newCount = 1;
+        } else if (lastActiveDate.getTime() === yesterday.getTime()) {
+          newCount = habitStreak.currentCount + 1;
+        }
       }
 
       await prisma.streak.update({
@@ -128,7 +142,6 @@ export async function POST(req: NextRequest) {
   });
 
   for (const membership of memberships) {
-    // 1. Update Squad Streak
     const squadLastActive = membership.squad.lastActiveDate;
     const squadYesterday = new Date(today);
     squadYesterday.setDate(squadYesterday.getDate() - 1);
@@ -136,14 +149,20 @@ export async function POST(req: NextRequest) {
     let squadStreakCount = membership.squad.streakCount;
     let squadUpdateNeeded = false;
 
-    if (!squadLastActive || squadLastActive < squadYesterday) {
-      // Streak broken, start anew
+    if (!squadLastActive) {
       squadStreakCount = 1;
       squadUpdateNeeded = true;
-    } else if (squadLastActive < today) {
-      // Previously active yesterday
-      squadStreakCount += 1;
-      squadUpdateNeeded = true;
+    } else {
+      const squadLastActiveDate = new Date(squadLastActive);
+      squadLastActiveDate.setHours(0, 0, 0, 0);
+      
+      if (squadLastActiveDate < squadYesterday) {
+        squadStreakCount = 1;
+        squadUpdateNeeded = true;
+      } else if (squadLastActiveDate.getTime() === squadYesterday.getTime()) {
+        squadStreakCount += 1;
+        squadUpdateNeeded = true;
+      }
     }
 
     if (squadUpdateNeeded) {

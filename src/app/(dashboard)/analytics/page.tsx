@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BarChart3, Clock, Flame, Zap, Target, TrendingUp, Download } from 'lucide-react';
+import { BarChart3, Clock, Flame, Zap, Target, TrendingUp, Download, Calendar } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area
@@ -10,6 +10,10 @@ import {
 interface AnalyticsData {
   totalPomodoros: number;
   totalMinutes: number;
+  recentPomodoros: number;
+  recentMinutes: number;
+  uniqueDaysLast7d: number;
+  dailyAvgMinutes: number;
   timeByHabit: { name: string; color: string; minutes: number }[];
   heatmap: Record<string, number>;
   peakHours: number[];
@@ -23,6 +27,7 @@ export default function AnalyticsPage() {
   }, []);
 
   const totalHours = data ? Math.round(data.totalMinutes / 60 * 10) / 10 : 0;
+  const recentHours = data ? Math.round(data.recentMinutes / 60 * 10) / 10 : 0;
 
   const peakData = data?.peakHours.map((min, hour) => ({
     hour: `${hour.toString().padStart(2, '0')}:00`,
@@ -36,6 +41,7 @@ export default function AnalyticsPage() {
     statIcon: { width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' } as React.CSSProperties,
     statNum: { fontSize: '28px', fontWeight: 800, lineHeight: 1 } as React.CSSProperties,
     statLabel: { fontSize: '12px', color: 'var(--text-muted)' } as React.CSSProperties,
+    statSub: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' } as React.CSSProperties,
   };
 
   const exportCsv = () => {
@@ -57,32 +63,52 @@ export default function AnalyticsPage() {
         </button>
       </div>
 
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <div style={s.card}>
           <div style={s.stat}>
             <div style={{ ...s.statIcon, background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }}><Target size={24} /></div>
-            <div><div style={s.statNum}>{data?.totalPomodoros || 0}</div><div style={s.statLabel}>Total Pomodoros</div></div>
+            <div>
+              <div style={s.statNum}>{data?.recentPomodoros || 0}</div>
+              <div style={s.statLabel}>Pomodoros (30d)</div>
+              <div style={s.statSub}>{data?.totalPomodoros || 0} all time</div>
+            </div>
           </div>
         </div>
         <div style={s.card}>
           <div style={s.stat}>
             <div style={{ ...s.statIcon, background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-success)' }}><Clock size={24} /></div>
-            <div><div style={s.statNum}>{totalHours}h</div><div style={s.statLabel}>Total Focus Time</div></div>
+            <div>
+              <div style={s.statNum}>{recentHours}h</div>
+              <div style={s.statLabel}>Focus (30d)</div>
+              <div style={s.statSub}>{totalHours}h all time</div>
+            </div>
           </div>
         </div>
         <div style={s.card}>
           <div style={s.stat}>
             <div style={{ ...s.statIcon, background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-warning)' }}><Flame size={24} /></div>
-            <div><div style={s.statNum}>{data?.timeByHabit?.length || 0}</div><div style={s.statLabel}>Active Habits</div></div>
+            <div>
+              <div style={s.statNum}>{data?.uniqueDaysLast7d || 0}/7</div>
+              <div style={s.statLabel}>Days Active</div>
+              <div style={s.statSub}>last 7 days</div>
+            </div>
+          </div>
+        </div>
+        <div style={s.card}>
+          <div style={s.stat}>
+            <div style={{ ...s.statIcon, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }}><Calendar size={24} /></div>
+            <div>
+              <div style={s.statNum}>{data?.dailyAvgMinutes || 0}m</div>
+              <div style={s.statLabel}>Daily Average</div>
+              <div style={s.statSub}>last 30 days</div>
+            </div>
           </div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-        {/* Time by Habit */}
         <div style={s.card}>
-          <div style={s.title}><Zap size={14} /> Time by Habit</div>
+          <div style={s.title}><Zap size={14} /> Time by Habit (Last 30 Days)</div>
           {data?.timeByHabit && data.timeByHabit.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -93,12 +119,11 @@ export default function AnalyticsPage() {
                 <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }} />
               </PieChart>
             </ResponsiveContainer>
-          ) : <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '40px' }}>No data yet</p>}
+          ) : <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '40px' }}>No data in the last 30 days</p>}
         </div>
 
-        {/* Peak Hours */}
         <div style={s.card}>
-          <div style={s.title}><TrendingUp size={14} /> Peak Hours</div>
+          <div style={s.title}><TrendingUp size={14} /> Peak Hours (Last 30 Days)</div>
           {data?.peakHours && data.peakHours.some(h => h > 0) ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={peakData}>
@@ -113,7 +138,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Focus Consistency Area Chart */}
       <div style={s.card}>
         <div style={s.title}><Flame size={14} /> Focus History (Last 14 Days)</div>
         {data?.heatmap && Object.keys(data.heatmap).length > 0 ? (

@@ -29,6 +29,7 @@ model User {
   squadMessages SquadMessage[]
   activityFeed  ActivityFeedEntry[]
   audioFiles    AudioFile[]
+  breakdownSessions BreakdownSession[]
 
   @@map("users")
 }
@@ -73,6 +74,19 @@ model Task {
   sessions PomodoroSession[]
 
   @@map("tasks")
+}
+
+model BreakdownSession {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  rawInput         String   @map("raw_input")
+  structuredOutput Json     @map("structured_output")
+  status           String   @default("draft")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("breakdown_sessions")
 }
 
 model PomodoroSession {

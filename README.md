@@ -16,6 +16,22 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Break It Down AI Configuration
+
+The "Break It Down" feature uses a server-side LLM request in `POST /api/breakdown`.
+
+Configure these environment variables in your `.env` file:
+
+```bash
+BREAKDOWN_LLM_URL="https://your-llm-endpoint/v1/chat/completions"
+BREAKDOWN_LLM_API_KEY="your_api_key"
+BREAKDOWN_LLM_MODEL="gpt-4.1-mini"
+```
+
+- `BREAKDOWN_LLM_URL`: full API endpoint for your model provider.
+- `BREAKDOWN_LLM_API_KEY`: secret key used only on the server.
+- `BREAKDOWN_LLM_MODEL`: optional; defaults to `gpt-4.1-mini`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

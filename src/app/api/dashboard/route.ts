@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+function isStreakBroken(lastActiveDate: Date | null): boolean {
+  if (!lastActiveDate) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastActive = new Date(lastActiveDate);
+  lastActive.setHours(0, 0, 0, 0);
+  return lastActive < yesterday;
+}
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -12,12 +23,17 @@ export async function GET() {
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Get global streak
-  const globalStreak = await prisma.streak.findFirst({
+  let globalStreak = await prisma.streak.findFirst({
     where: { userId, type: 'global' },
   });
 
-  // Get today's pomodoros
+  if (globalStreak && isStreakBroken(globalStreak.lastActiveDate)) {
+    globalStreak = await prisma.streak.update({
+      where: { id: globalStreak.id },
+      data: { currentCount: 0 },
+    });
+  }
+
   const todayPomodoros = await prisma.pomodoroSession.count({
     where: {
       userId,
@@ -26,7 +42,6 @@ export async function GET() {
     },
   });
 
-  // Get next task (closest due date)
   const nextTask = await prisma.task.findFirst({
     where: {
       userId,
@@ -41,19 +56,41 @@ export async function GET() {
     },
   });
 
-  // Get habits with streaks
   const habits = await prisma.habit.findMany({
     where: { userId },
     include: {
       streaks: {
         where: { type: 'habit' },
-        select: { currentCount: true },
+        select: { id: true, currentCount: true, lastActiveDate: true },
       },
     },
     orderBy: { createdAt: 'asc' },
   });
 
-  // Get recent squad activity
+  const habitsWithRecalculatedStreaks = await Promise.all(
+    habits.map(async (h) => {
+      const habitStreak = h.streaks[0];
+      let effectiveStreak = habitStreak?.currentCount || 0;
+
+      if (habitStreak && isStreakBroken(habitStreak.lastActiveDate)) {
+        effectiveStreak = 0;
+        await prisma.streak.update({
+          where: { id: habitStreak.id },
+          data: { currentCount: 0 },
+        }).catch(() => {});
+      }
+
+      return {
+        id: h.id,
+        name: h.name,
+        color: h.color,
+        emoji: h.emoji,
+        iconSvg: h.iconSvg,
+        streak: effectiveStreak,
+      };
+    })
+  );
+
   const squadMemberships = await prisma.squadMember.findMany({
     where: { userId },
     select: { squadId: true },
@@ -69,7 +106,6 @@ export async function GET() {
     }
   });
 
-  // Calculate Real Rings Metrics
   const last7Days = new Date(now);
   last7Days.setDate(last7Days.getDate() - 7);
   
@@ -86,10 +122,10 @@ export async function GET() {
   const completedSessionCount = allSessions7d.filter((s: { completed: boolean }) => s.completed).length;
   const completionRate = allSessions7d.length > 0 ? Math.round((completedSessionCount / allSessions7d.length) * 100) : 0;
 
-  const habitsWithStreak = habits.filter((h: any) => h.streaks?.[0]?.currentCount > 0).length;
+  const habitsWithStreak = habitsWithRecalculatedStreaks.filter((h) => h.streak > 0).length;
   const habitHealth = habits.length > 0 ? Math.round((habitsWithStreak / habits.length) * 100) : 0;
   
-  const dailyGoal = 8; // Assumed 8 pomodoros daily goal
+  const dailyGoal = 8;
   const dailyGoalProgress = Math.min(Math.round((todayPomodoros / dailyGoal) * 100), 100);
 
   return NextResponse.json({
@@ -106,14 +142,7 @@ export async function GET() {
           completedPomodoros: nextTask.completedPomodoros,
         }
       : null,
-    habits: habits.map((h: any) => ({
-      id: h.id,
-      name: h.name,
-      color: h.color,
-      emoji: h.emoji,
-      iconSvg: h.iconSvg,
-      streak: h.streaks[0]?.currentCount || 0,
-    })),
+    habits: habitsWithRecalculatedStreaks,
     squadActivity: squadActivity.map((a: any) => ({
       id: a.id,
       userName: a.user.name || 'User',

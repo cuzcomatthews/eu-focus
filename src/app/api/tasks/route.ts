@@ -118,7 +118,6 @@ export async function PATCH(req: NextRequest) {
     today.setHours(0, 0, 0, 0);
 
     for (const membership of memberships) {
-      // 1. Update Squad Streak
       const squadLastActive = membership.squad.lastActiveDate;
       const squadYesterday = new Date(today);
       squadYesterday.setDate(squadYesterday.getDate() - 1);
@@ -126,14 +125,20 @@ export async function PATCH(req: NextRequest) {
       let squadStreakCount = membership.squad.streakCount;
       let squadUpdateNeeded = false;
 
-      if (!squadLastActive || squadLastActive < squadYesterday) {
-        // Streak broken, start anew
+      if (!squadLastActive) {
         squadStreakCount = 1;
         squadUpdateNeeded = true;
-      } else if (squadLastActive < today) {
-        // Previously active yesterday
-        squadStreakCount += 1;
-        squadUpdateNeeded = true;
+      } else {
+        const squadLastActiveDate = new Date(squadLastActive);
+        squadLastActiveDate.setHours(0, 0, 0, 0);
+        
+        if (squadLastActiveDate < squadYesterday) {
+          squadStreakCount = 1;
+          squadUpdateNeeded = true;
+        } else if (squadLastActiveDate.getTime() === squadYesterday.getTime()) {
+          squadStreakCount += 1;
+          squadUpdateNeeded = true;
+        }
       }
 
       if (squadUpdateNeeded) {
