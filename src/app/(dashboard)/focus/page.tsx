@@ -252,23 +252,39 @@ export default function FocusPage() {
   useEffect(() => {
     if (prevPhaseRef.current === 'break' && phase === 'idle') {
       playAlert();
-      const task = tasks.find((t) => t.id === activeTaskId);
-      if (task) {
-        fetch('/api/pomodoro', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            taskId: task.id,
-            habitId: task.habitId,
-            durationMinutes: useTimerStore.getState().focusDuration,
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.streak?.increased) setCelebrationStreak(data.streak.currentCount);
-            fetchTasks();
-          });
+      const currentId = activeTaskId;
+      if (!currentId) {
+        prevPhaseRef.current = phase;
+        return;
       }
+      const task = tasks.find((t) => t.id === currentId);
+      const habitId = task?.habitId ?? undefined;
+
+      fetch('/api/pomodoro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: currentId,
+          habitId,
+          durationMinutes: useTimerStore.getState().focusDuration,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Pomodoro API error:', err);
+            return null;
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (!data) return;
+          if (data.streak?.increased) setCelebrationStreak(data.streak.currentCount);
+          fetchTasks();
+        })
+        .catch((err) => {
+          console.error('Failed to record pomodoro:', err);
+        });
     } else if (prevPhaseRef.current === 'focus' && phase === 'break') {
       playSuccess();
     }
