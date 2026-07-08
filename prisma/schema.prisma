@@ -30,6 +30,7 @@ model User {
   activityFeed  ActivityFeedEntry[]
   audioFiles    AudioFile[]
   breakdownSessions BreakdownSession[]
+  dailyCheckIns DailyCheckIn[]
 
   @@map("users")
 }
@@ -205,4 +206,21 @@ model AudioFile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("audio_files")
+}
+
+model DailyCheckIn {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime
+  rawText     String   @map("raw_text")
+  habitScores Json     @map("habit_scores")
+  feedback    String
+  summary     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("daily_check_ins")
 }

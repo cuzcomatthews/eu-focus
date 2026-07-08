@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MoreHorizontal,
+  MessageCircle,
 } from 'lucide-react';
 import { useTimerStore } from '@/stores/timerStore';
 import styles from './dashboard.module.css';
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/workspace', label: 'Workspace', icon: KanbanSquare },
   { href: '/focus', label: 'Focus Garden', icon: TreePine },
+  { href: '/accountability', label: 'Accountability', icon: MessageCircle },
   { href: '/squads', label: 'Squads', icon: Users },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/settings', label: 'Settings', icon: Settings },
