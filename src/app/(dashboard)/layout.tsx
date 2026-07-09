@@ -186,6 +186,16 @@ export default function DashboardLayout({
           </button>
         </div>
       )}
+
+      {phase !== 'idle' && pathname === '/focus' && (
+        <button
+          className={styles.floatingTimerPopupBtnAbsolute}
+          onClick={() => window.open('/timer-popup', 'eu-focus-timer', 'width=300,height=160,menubar=no,toolbar=no,location=no,status=no')}
+          title="Open popup timer"
+        >
+          <ExternalLink size={14} />
+        </button>
+      )}
     </div>
   );
 }
