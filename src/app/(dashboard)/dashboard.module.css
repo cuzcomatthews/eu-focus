@@ -280,6 +280,9 @@
 
 /* Floating timer widget */
 .floatingTimer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
   background: var(--bg-card);
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-lg);
@@ -288,6 +291,7 @@
   align-items: center;
   gap: 12px;
   box-shadow: var(--shadow-lg), var(--shadow-glow);
+  z-index: 50;
   cursor: pointer;
   transition: all var(--transition-fast);
   animation: scaleIn 0.2s ease forwards;
@@ -324,68 +328,6 @@
 
 .floatingTimerDotBreak {
   background: var(--accent-info);
-}
-
-.floatingTimerGroup {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.floatingTimer {
-  position: static;
-  animation: scaleIn 0.2s ease forwards;
-}
-
-.floatingTimerPopupBtn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--border-accent);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-lg);
-}
-
-.floatingTimerPopupBtn:hover {
-  color: var(--text-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg), 0 0 20px rgba(99, 102, 241, 0.2);
-}
-
-.floatingTimerPopupBtnAbsolute {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 50;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--border-accent);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-lg);
-}
-
-.floatingTimerPopupBtnAbsolute:hover {
-  color: var(--text-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg), 0 0 20px rgba(99, 102, 241, 0.2);
 }
 
 /* Mobile responsive */

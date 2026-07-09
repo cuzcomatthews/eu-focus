@@ -18,7 +18,6 @@ import {
   PanelLeftOpen,
   MoreHorizontal,
   MessageCircle,
-  ExternalLink,
 } from 'lucide-react';
 import { useTimerStore } from '@/stores/timerStore';
 import styles from './dashboard.module.css';
@@ -163,38 +162,19 @@ export default function DashboardLayout({
       </main>
 
       {showFloatingTimer && (
-        <div className={styles.floatingTimerGroup}>
-          <Link href="/focus" className={styles.floatingTimer}>
-            <div className={`${styles.floatingTimerDot} ${
-              phase === 'break' ? styles.floatingTimerDotBreak : ''
-            }`} />
-            <div>
-              <div className={styles.floatingTimerTime}>
-                {formatTime(timeRemaining)}
-              </div>
-              <div className={styles.floatingTimerTask}>
-                {activeTaskTitle || 'Focus session'}
-              </div>
+        <Link href="/focus" className={styles.floatingTimer}>
+          <div className={`${styles.floatingTimerDot} ${
+            phase === 'break' ? styles.floatingTimerDotBreak : ''
+          }`} />
+          <div>
+            <div className={styles.floatingTimerTime}>
+              {formatTime(timeRemaining)}
             </div>
-          </Link>
-          <button
-            className={styles.floatingTimerPopupBtn}
-            onClick={() => window.open('/timer-popup', 'eu-focus-timer', 'width=300,height=160,menubar=no,toolbar=no,location=no,status=no')}
-            title="Open popup timer"
-          >
-            <ExternalLink size={14} />
-          </button>
-        </div>
-      )}
-
-      {phase !== 'idle' && pathname === '/focus' && (
-        <button
-          className={styles.floatingTimerPopupBtnAbsolute}
-          onClick={() => window.open('/timer-popup', 'eu-focus-timer', 'width=300,height=160,menubar=no,toolbar=no,location=no,status=no')}
-          title="Open popup timer"
-        >
-          <ExternalLink size={14} />
-        </button>
+            <div className={styles.floatingTimerTask}>
+              {activeTaskTitle || 'Focus session'}
+            </div>
+          </div>
+        </Link>
       )}
     </div>
   );
