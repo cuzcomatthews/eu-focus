@@ -160,6 +160,23 @@ async function callAccountabilityLlm(
   return { feedback, summary, habits };
 }
 
+async function getUserDate(userId: string): Promise<Date> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+  const tz = user?.timezone || 'America/Guayaquil';
+  const now = new Date();
+  const dateInTz = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  const [y, m, d] = dateInTz.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -177,8 +194,7 @@ export async function POST(req: NextRequest) {
 
     const categories = await ensureUserHabits(userId);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = await getUserDate(userId);
 
     const existing = await prisma.dailyCheckIn.findUnique({
       where: { userId_date: { userId, date: today } },
@@ -255,7 +271,7 @@ export async function GET(req: NextRequest) {
 
   try {
     if (dateParam) {
-      const date = new Date(dateParam + 'T00:00:00');
+      const date = new Date(dateParam + 'T00:00:00Z');
       const entry = await prisma.dailyCheckIn.findUnique({
         where: { userId_date: { userId, date } },
       });
@@ -263,8 +279,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (fromParam || toParam) {
-      const from = fromParam ? new Date(fromParam + 'T00:00:00') : new Date(0);
-      const to = toParam ? new Date(toParam + 'T23:59:59') : new Date();
+      const from = fromParam ? new Date(fromParam + 'T00:00:00Z') : new Date(0);
+      const to = toParam ? new Date(toParam + 'T23:59:59Z') : new Date();
       const entries = await prisma.dailyCheckIn.findMany({
         where: { userId, date: { gte: from, lte: to } },
         orderBy: { date: 'desc' },
@@ -272,8 +288,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(entries.map((e) => ({ ...e, date: e.date.toISOString(), habitScores: e.habitScores as HabitScores })));
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = await getUserDate(userId);
     const entry = await prisma.dailyCheckIn.findUnique({
       where: { userId_date: { userId, date: today } },
     });

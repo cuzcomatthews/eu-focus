@@ -28,7 +28,6 @@ model User {
   squadPins     SquadPin[]
   squadMessages SquadMessage[]
   activityFeed  ActivityFeedEntry[]
-  audioFiles    AudioFile[]
   breakdownSessions BreakdownSession[]
   dailyCheckIns DailyCheckIn[]
   accountabilityHabits AccountabilityHabit[]
@@ -195,18 +194,6 @@ model ActivityFeedEntry {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("activity_feed_entries")
-}
-
-model AudioFile {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  name      String
-  blobUrl   String   @map("blob_url")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("audio_files")
 }
 
 model DailyCheckIn {

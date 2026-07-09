@@ -2,16 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Settings as SettingsIcon, Globe, Clock, Volume2, User, Save, Trash2, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Clock, User, Save, LogOut } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTimerStore } from '@/stores/timerStore';
-
-type AudioFileItem = {
-  id: string;
-  name: string;
-  url: string;
-  createdAt: string;
-};
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -22,18 +15,6 @@ export default function SettingsPage() {
   const [longBreak, setLongBreak] = useState(15);
   const [name, setName] = useState(() => session?.user?.name || '');
   const [saved, setSaved] = useState(false);
-  const [audioFiles, setAudioFiles] = useState<AudioFileItem[]>([]);
-
-  useEffect(() => {
-    const loadAudioFiles = async () => {
-      const res = await fetch('/api/audio-files');
-      if (!res.ok) return;
-      const data: AudioFileItem[] = await res.json();
-      setAudioFiles(data);
-    };
-
-    void loadAudioFiles();
-  }, []);
 
   const saveSettings = async () => {
     setDurations(focus, breakMin);
@@ -44,15 +25,6 @@ export default function SettingsPage() {
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  };
-
-  const deleteAudioFile = async (id: string) => {
-    const res = await fetch(`/api/audio-files?id=${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-    });
-
-    if (!res.ok) return;
-    setAudioFiles((prev) => prev.filter((file) => file.id !== id));
   };
 
   const s = {
@@ -127,56 +99,13 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Custom Sounds */}
-      <div style={s.card}>
-        <div style={s.title}><Volume2 size={18} /> Custom Sounds</div>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-          Manage sounds uploaded from Focus Garden. They stay available after reload until you delete them here.
-        </p>
-        {audioFiles.length === 0 ? (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No custom sounds uploaded yet.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {audioFiles.map((file) => (
-              <div
-                key={file.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '10px',
-                  padding: '10px 12px',
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {file.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Added {new Date(file.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <button
-                  style={{ ...s.btn, ...s.danger, padding: '8px 12px' }}
-                  onClick={() => deleteAudioFile(file.id)}
-                >
-                  <Trash2 size={13} /> Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Save */}
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
         <button style={{ ...s.btn, ...s.primary }} onClick={saveSettings}>
           <Save size={14} /> Save Settings
         </button>
         {saved && <span style={{ color: 'var(--accent-success)', fontSize: '13px', fontWeight: 500 }}>Settings saved!</span>}
-        <button style={{ ...s.btn, ...s.danger, marginLeft: 'auto' }} onClick={() => signOut({ callbackUrl: '/login' })}>
+        <button style={{ ...s.btn, ...s.danger, marginLeft: 'auto' }} onClick={() => signOut({ callbackUrl: 'https://eu-focus.vercel.app/login' })}>
           <LogOut size={14} /> Sign Out
         </button>
       </div>

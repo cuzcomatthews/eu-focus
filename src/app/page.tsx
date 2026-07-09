@@ -77,8 +77,8 @@ export default function HomePage() {
             </div>
             <h3 className={styles.featureName}>Deep Focus</h3>
             <p className={styles.featureDesc}>
-              Pomodoro timer with ambient sounds, lofi scenes, and custom
-              playlists. Stay in flow longer.
+              Pomodoro timer with ambient sounds, lofi scenes, and YouTube
+              integrations. Stay in flow longer.
             </p>
           </div>
 

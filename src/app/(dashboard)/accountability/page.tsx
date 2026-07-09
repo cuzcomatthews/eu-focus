@@ -225,14 +225,14 @@ export default function AccountabilityPage() {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const opts: Intl.DateTimeFormatOptions = { timeZone: 'UTC', year: 'numeric', month: 'numeric', day: 'numeric' };
+    const dLocal = d.toLocaleDateString('es-EC', opts);
+    const todayLocal = today.toLocaleDateString('es-EC');
+    if (dLocal === todayLocal) return 'Hoy';
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const dDay = new Date(d);
-    dDay.setHours(0, 0, 0, 0);
-
-    if (dDay.getTime() === today.getTime()) return 'Hoy';
-    if (dDay.getTime() === yesterday.getTime()) return 'Ayer';
+    const yesterdayLocal = yesterday.toLocaleDateString('es-EC');
+    if (dLocal === yesterdayLocal) return 'Ayer';
     return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
