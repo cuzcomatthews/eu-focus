@@ -1324,6 +1324,18 @@
   border: 0;
 }
 
+.playlistIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .lofiAudioFrame {
   position: fixed;
   width: 1px;

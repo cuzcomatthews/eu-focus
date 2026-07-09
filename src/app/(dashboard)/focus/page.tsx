@@ -23,6 +23,7 @@ import {
   EyeOff,
   PlusCircle,
   X,
+  ListMusic,
 } from 'lucide-react';
 import { useTimerStore } from '@/stores/timerStore';
 import StreakCelebration from '@/components/StreakCelebration';
@@ -58,6 +59,15 @@ type AmbientSound = {
   id: AmbientSoundId;
   label: string;
   url: string;
+};
+
+type YouTubeMode = 'iframe' | 'api';
+
+type YouTubeParsed = {
+  type: 'video' | 'playlist';
+  videoId?: string;
+  playlistId?: string;
+  startIndex?: number;
 };
 
 const STORAGE_KEY_PLAYLISTS = 'euFocusTrackPlaylistsV1';
@@ -115,6 +125,40 @@ const extractYouTubeEmbedUrl = (input: string): string | null => {
   return null;
 };
 
+function parseYouTubeUrl(input: string): YouTubeParsed | null {
+  const value = input.trim();
+  if (!value) return null;
+
+  if (/^[a-zA-Z0-9_-]{34}$/.test(value)) {
+    return { type: 'playlist', playlistId: value };
+  }
+  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) {
+    return { type: 'video', videoId: value };
+  }
+
+  try {
+    const parsed = new URL(value);
+    const playlistId = parsed.searchParams.get('list');
+    const videoId = parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop();
+    const rawIndex = parseInt(parsed.searchParams.get('index') || '0', 10);
+    const startIndex = Number.isFinite(rawIndex) && rawIndex > 0 ? rawIndex - 1 : undefined;
+
+    if (playlistId && videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      return { type: 'playlist', videoId, playlistId, startIndex };
+    }
+    if (playlistId) {
+      return { type: 'playlist', playlistId, startIndex };
+    }
+    if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      return { type: 'video', videoId };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 const formatDuration = (seconds: number | undefined) => {
   if (!seconds || Number.isNaN(seconds)) return '--:--';
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -141,6 +185,9 @@ export default function FocusPage() {
   const [lofiSourceInput, setLofiSourceInput] = useState('');
   const [lofiCustomEmbedUrl, setLofiCustomEmbedUrl] = useState<string | null>(null);
   const [lofiSourceError, setLofiSourceError] = useState<string | null>(null);
+  const [youtubeMode, setYoutubeMode] = useState<YouTubeMode>('iframe');
+  const [isPlaylistMode, setIsPlaylistMode] = useState(false);
+  const [youtubeParsed, setYoutubeParsed] = useState<YouTubeParsed | null>(null);
 
   const [trackIndex, setTrackIndex] = useState(0);
   const [isTrackPlaying, setIsTrackPlaying] = useState(false);
@@ -170,6 +217,8 @@ export default function FocusPage() {
   const ambientAudioRefs = useRef<Record<AmbientSoundId, HTMLAudioElement>>({} as Record<AmbientSoundId, HTMLAudioElement>);
   const ambientControlHideTimerRef = useRef<number | null>(null);
   const trackVolumeHideTimerRef = useRef<number | null>(null);
+  const youtubePlayerRef = useRef<unknown>(null);
+  const youtubeContainerId = useRef(`yt-${Math.random().toString(36).slice(2, 10)}`);
 
   const {
     phase,
@@ -407,6 +456,73 @@ export default function FocusPage() {
   }, [activeSound]);
 
   useEffect(() => {
+    if (youtubeMode !== 'api' || !youtubeParsed?.playlistId) return;
+
+    const parsed = youtubeParsed;
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.getElementsByTagName('script')[0]?.parentNode?.insertBefore(tag, document.getElementsByTagName('script')[0]);
+    }
+
+    let cancelled = false;
+
+    function initPlayer() {
+      if (cancelled) return;
+      const containerId = youtubeContainerId.current;
+      const el = document.getElementById(containerId);
+      if (!el) return;
+
+      if (youtubePlayerRef.current) {
+        try { (youtubePlayerRef.current as { destroy?: () => void })?.destroy?.(); } catch { /* ignore */ }
+      }
+
+      const win = window as unknown as Record<string, unknown>;
+      if (!win.YT || !(win.YT as Record<string, unknown>)?.Player) return;
+
+      const YTP = (win.YT as Record<string, unknown>).Player as new (
+        el: string | HTMLElement,
+        cfg: Record<string, unknown>
+      ) => Record<string, unknown>;
+
+      youtubePlayerRef.current = new YTP(el, {
+        height: '100%',
+        width: '100%',
+        playerVars: { autoplay: 1, controls: 1 },
+        events: {
+          onReady: () => {
+            if (cancelled) return;
+            const p = youtubePlayerRef.current as Record<string, unknown> | null;
+            if (!p) return;
+            const loadPlaylist = p.loadPlaylist as ((opts: { list: string; listType: string; index?: number }) => void) | undefined;
+            if (!loadPlaylist) return;
+            loadPlaylist({
+              list: parsed.playlistId!,
+              listType: 'playlist',
+              index: parsed.startIndex ?? 0,
+            });
+          },
+        },
+      });
+    }
+
+    if ((window as unknown as Record<string, unknown>).YT) {
+      initPlayer();
+    } else {
+      (window as unknown as Record<string, unknown>).onYouTubeIframeAPIReady = () => {
+        if (!cancelled) initPlayer();
+      };
+    }
+
+    return () => {
+      cancelled = true;
+      try { (youtubePlayerRef.current as { destroy?: () => void })?.destroy?.(); } catch { /* ignore */ }
+      youtubePlayerRef.current = null;
+    };
+  }, [youtubeMode, youtubeParsed?.playlistId, youtubeParsed?.startIndex]);
+
+  useEffect(() => {
     const ambientMap = ambientAudioRefs.current;
     return () => {
       if (trackAudioRef.current) {
@@ -426,6 +542,8 @@ export default function FocusPage() {
       if (trackVolumeHideTimerRef.current) {
         window.clearTimeout(trackVolumeHideTimerRef.current);
       }
+
+      try { (youtubePlayerRef.current as { destroy?: () => void })?.destroy?.(); } catch { /* ignore */ }
     };
   }, []);
 
@@ -502,16 +620,27 @@ export default function FocusPage() {
   };
 
   const applyCustomLofiSource = () => {
-    const embed = extractYouTubeEmbedUrl(lofiSourceInput);
-    if (!embed) {
+    const parsed = parseYouTubeUrl(lofiSourceInput);
+    if (!parsed) {
       setLofiSourceError('Use a valid YouTube video or playlist URL.');
       return;
     }
 
     setActiveSound('lofi');
     setIsTrackPlaying(false);
-    setLofiCustomEmbedUrl(embed);
     setLofiSourceError(null);
+    setYoutubeParsed(parsed);
+
+    if (parsed.type === 'playlist') {
+      setYoutubeMode('api');
+      setIsPlaylistMode(true);
+      setLofiCustomEmbedUrl(null);
+    } else {
+      const embed = extractYouTubeEmbedUrl(lofiSourceInput);
+      setYoutubeMode('iframe');
+      setIsPlaylistMode(false);
+      setLofiCustomEmbedUrl(embed);
+    }
   };
 
   const toggleLofi = () => {
@@ -860,7 +989,17 @@ export default function FocusPage() {
 
               {lofiSourceError && <p className={styles.lofiErrorText}>{lofiSourceError}</p>}
 
-              {lofiCustomEmbedUrl ? (
+              {youtubeMode === 'api' && youtubeParsed?.playlistId ? (
+                <div className={styles.youtubeFrameShell} key={`api-${youtubeParsed.playlistId}`}>
+                  <div id={youtubeContainerId.current} className={styles.youtubeFrame} />
+                  {isPlaylistMode && (
+                    <div className={styles.playlistIndicator}>
+                      <ListMusic size={12} />
+                      Reproduciendo playlist
+                    </div>
+                  )}
+                </div>
+              ) : lofiCustomEmbedUrl ? (
                 <div className={styles.youtubeFrameShell}>
                   <iframe
                     key={lofiCustomEmbedUrl}
