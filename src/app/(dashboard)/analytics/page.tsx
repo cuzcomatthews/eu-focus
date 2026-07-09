@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Clock, Flame, Zap, Target, TrendingUp, Download, Calendar } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area
+  ResponsiveContainer, AreaChart, Area, LineChart, Line, Legend
 } from 'recharts';
 
 interface AnalyticsData {
@@ -14,10 +14,18 @@ interface AnalyticsData {
   recentMinutes: number;
   uniqueDaysLast7d: number;
   dailyAvgMinutes: number;
-  timeByHabit: { name: string; color: string; minutes: number }[];
+  habitsTrend: Record<string, { name: string; emoji: string; scores: { date: string; score: number }[] }>;
   heatmap: Record<string, number>;
   peakHours: number[];
 }
+
+const HABIT_TREND_COLORS: Record<string, string> = {
+  sueño: '#8b5cf6',
+  organizacion: '#14b8a6',
+  academico: '#f59e0b',
+  proyectos: '#3b82f6',
+  dopamina: '#ef4444',
+};
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -108,18 +116,50 @@ export default function AnalyticsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
         <div style={s.card}>
-          <div style={s.title}><Zap size={14} /> Time by Habit (Last 30 Days)</div>
-          {data?.timeByHabit && data.timeByHabit.length > 0 ? (
+          <div style={s.title}><Zap size={14} /> Tendencias de Hábitos (30 Días)</div>
+          {data?.habitsTrend && Object.keys(data.habitsTrend).length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <Pie data={data.timeByHabit} dataKey="minutes" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={4} label={((props: any) => `${props.name}: ${Math.round(props.minutes)}m`) as any} labelLine={false} style={{ fontSize: '11px' }}>
-                  {data.timeByHabit.map((h, i) => <Cell key={i} fill={h.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }} />
-              </PieChart>
+              <LineChart
+                data={(() => {
+                  const allDates = new Set<string>();
+                  for (const h of Object.values(data.habitsTrend)) {
+                    for (const s of h.scores) allDates.add(s.date);
+                  }
+                  return Array.from(allDates).sort().map((date) => {
+                    const point: Record<string, string | number> = { date: date.slice(5) };
+                    for (const [key, habit] of Object.entries(data.habitsTrend)) {
+                      const score = habit.scores.find((s) => s.date === date)?.score;
+                      if (score !== undefined) point[key] = score;
+                    }
+                    return point;
+                  });
+                })()}
+                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} interval="preserveStartEnd" />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontSize: '11px' }} />
+                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                {Object.entries(data.habitsTrend).map(([key, habit]) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    name={habit.emoji + ' ' + habit.name}
+                    stroke={HABIT_TREND_COLORS[key] || '#6366f1'}
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
             </ResponsiveContainer>
-          ) : <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '40px' }}>No data in the last 30 days</p>}
+          ) : (
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '40px' }}>
+              Haz check-ins en Accountability para ver tendencias
+            </p>
+          )}
         </div>
 
         <div style={s.card}>

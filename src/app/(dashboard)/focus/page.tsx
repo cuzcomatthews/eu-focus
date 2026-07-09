@@ -34,10 +34,8 @@ interface Task {
   title: string;
   status: string;
   descriptionHtml: string | null;
-  habitId: string;
   estimatedPomodoros: number;
   completedPomodoros: number;
-  habit: { name: string; color: string; iconSvg: string };
 }
 
 type FocusTool = 'radioAI' | 'tracklist';
@@ -257,15 +255,11 @@ export default function FocusPage() {
         prevPhaseRef.current = phase;
         return;
       }
-      const task = tasks.find((t) => t.id === currentId);
-      const habitId = task?.habitId ?? undefined;
-
       fetch('/api/pomodoro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskId: currentId,
-          habitId,
           durationMinutes: useTimerStore.getState().focusDuration,
         }),
       })
@@ -289,7 +283,7 @@ export default function FocusPage() {
       playSuccess();
     }
     prevPhaseRef.current = phase;
-  }, [phase, activeTaskId, tasks, fetchTasks, playSuccess, playAlert]);
+  }, [phase, activeTaskId, fetchTasks, playSuccess, playAlert]);
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId);
   const selectedPlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
@@ -472,7 +466,7 @@ export default function FocusPage() {
   const handleStart = () => {
     if (!selectedTask) return;
     playPop();
-    startFocus(selectedTask.id, selectedTask.title, selectedTask.habit.name);
+    startFocus(selectedTask.id, selectedTask.title);
   };
 
   const handleAddPomodoro = async () => {
@@ -810,7 +804,7 @@ export default function FocusPage() {
                 <option value="">Choose task...</option>
                 {tasks.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.title} ({t.habit.name})
+                    {t.title}
                   </option>
                 ))}
               </select>

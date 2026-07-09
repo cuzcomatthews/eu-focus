@@ -51,45 +51,31 @@ export async function GET() {
       { dueDate: 'asc' },
       { createdAt: 'asc' },
     ],
-    include: {
-      habit: { select: { name: true } },
-    },
   });
 
-  const habits = await prisma.habit.findMany({
-    where: { userId },
-    include: {
-      streaks: {
-        where: { type: 'habit' },
-        select: { id: true, currentCount: true, lastActiveDate: true },
-      },
-    },
-    orderBy: { createdAt: 'asc' },
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const recentCheckIns = await prisma.dailyCheckIn.findMany({
+    where: { userId, date: { gte: weekAgo, lte: today } },
+    select: { habitScores: true },
   });
 
-  const habitsWithRecalculatedStreaks = await Promise.all(
-    habits.map(async (h) => {
-      const habitStreak = h.streaks[0];
-      let effectiveStreak = habitStreak?.currentCount || 0;
-
-      if (habitStreak && isStreakBroken(habitStreak.lastActiveDate)) {
-        effectiveStreak = 0;
-        await prisma.streak.update({
-          where: { id: habitStreak.id },
-          data: { currentCount: 0 },
-        }).catch(() => {});
+  let habitHealth = 0;
+  if (recentCheckIns.length > 0) {
+    const allScores: number[] = [];
+    for (const ci of recentCheckIns) {
+      const scores = ci.habitScores as Record<string, { score: number | null }>;
+      for (const v of Object.values(scores)) {
+        if (typeof v?.score === 'number') allScores.push(v.score);
       }
-
-      return {
-        id: h.id,
-        name: h.name,
-        color: h.color,
-        emoji: h.emoji,
-        iconSvg: h.iconSvg,
-        streak: effectiveStreak,
-      };
-    })
-  );
+    }
+    habitHealth = allScores.length > 0
+      ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
+      : 0;
+  }
 
   const squadMemberships = await prisma.squadMember.findMany({
     where: { userId },
@@ -121,9 +107,6 @@ export async function GET() {
 
   const completedSessionCount = allSessions7d.filter((s: { completed: boolean }) => s.completed).length;
   const completionRate = allSessions7d.length > 0 ? Math.round((completedSessionCount / allSessions7d.length) * 100) : 0;
-
-  const habitsWithStreak = habitsWithRecalculatedStreaks.filter((h) => h.streak > 0).length;
-  const habitHealth = habits.length > 0 ? Math.round((habitsWithStreak / habits.length) * 100) : 0;
   
   const dailyGoal = 8;
   const dailyGoalProgress = Math.min(Math.round((todayPomodoros / dailyGoal) * 100), 100);
@@ -136,14 +119,12 @@ export async function GET() {
       ? {
           id: nextTask.id,
           title: nextTask.title,
-          habitName: nextTask.habit.name,
           dueDate: nextTask.dueDate?.toISOString() || null,
           estimatedPomodoros: nextTask.estimatedPomodoros,
           completedPomodoros: nextTask.completedPomodoros,
         }
       : null,
-    habits: habitsWithRecalculatedStreaks,
-    squadActivity: squadActivity.map((a: any) => ({
+    squadActivity: squadActivity.map((a) => ({
       id: a.id,
       userName: a.user.name || 'User',
       userAvatar: a.user.avatarUrl || null,

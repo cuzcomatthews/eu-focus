@@ -11,14 +11,14 @@ export async function POST(req: NextRequest) {
 
   const userId = session.user.id;
   const body = await req.json();
-  const { taskId, habitId, durationMinutes } = body;
+  const { taskId, durationMinutes } = body;
 
   // Create pomodoro session
   const pomodoroSession = await prisma.pomodoroSession.create({
     data: {
       userId,
       taskId: taskId || null,
-      habitId: habitId || null,
+      habitId: null,
       startedAt: new Date(Date.now() - durationMinutes * 60 * 1000),
       endedAt: new Date(),
       durationMinutes: durationMinutes || 25,
@@ -99,42 +99,6 @@ export async function POST(req: NextRequest) {
     globalStreakResult = { currentCount: created.currentCount, increased: true };
   }
 
-  if (habitId) {
-    const habitStreak = await prisma.streak.findFirst({
-      where: { userId, type: 'habit', habitId },
-    });
-
-    if (habitStreak) {
-      const lastActive = habitStreak.lastActiveDate;
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      let newCount = habitStreak.currentCount;
-
-      if (!lastActive) {
-        newCount = 1;
-      } else {
-        const lastActiveDate = new Date(lastActive);
-        lastActiveDate.setHours(0, 0, 0, 0);
-        
-        if (lastActiveDate < yesterday) {
-          newCount = 1;
-        } else if (lastActiveDate.getTime() === yesterday.getTime()) {
-          newCount = habitStreak.currentCount + 1;
-        }
-      }
-
-      await prisma.streak.update({
-        where: { id: habitStreak.id },
-        data: {
-          currentCount: newCount,
-          longestCount: Math.max(newCount, habitStreak.longestCount),
-          lastActiveDate: new Date(),
-        },
-      });
-    }
-  }
-
   // Add to squad activity feed and update squad streaks if user is in squads
   const memberships = await prisma.squadMember.findMany({
     where: { userId },
@@ -202,7 +166,7 @@ export async function POST(req: NextRequest) {
             squadId: membership.squadId,
             userId,
             taskTitle: task.title,
-            habitName: task.habit.name,
+            habitName: 'General',
             durationMinutes: durationMinutes || 25,
             taskDescriptionPreview: task.descriptionHtml?.replace(/<[^>]*>/g, '').slice(0, 100) || null,
           },

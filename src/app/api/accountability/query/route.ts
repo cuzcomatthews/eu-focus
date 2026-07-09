@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
-  ACCOUNTABILITY_QUERY_SYSTEM_PROMPT,
+  buildQuerySystemPrompt,
   ACCOUNTABILITY_RESPONSE_PROMPT,
-  ACCOUNTABILITY_CATEGORIES,
+  DEFAULT_HABITS,
+  type HabitCategory,
   type HabitScores,
 } from '@/lib/accountability';
 
@@ -85,14 +86,20 @@ function timeRangeToDate(range: string): { from: Date; to: Date } {
   }
 }
 
-function formatQueryResults(queryParams: QueryParams, entries: Array<{ date: Date; habitScores: HabitScores; summary: string }>): string {
+function formatQueryResults(
+  queryParams: QueryParams,
+  entries: Array<{ date: Date; habitScores: HabitScores; summary: string }>,
+  categories: HabitCategory[]
+): string {
   if (entries.length === 0) return 'No hay datos para el período consultado.';
 
   const parts: string[] = [];
 
-  parts.push(`Período: ${entries.length} días con datos (${entries[entries.length - 1]?.date?.toISOString?.()?.split('T')[0] || '?'} a ${entries[0]?.date?.toISOString?.()?.split('T')[0] || '?'})\n`);
+  const firstDate = entries[0]?.date instanceof Date ? entries[0].date.toISOString().split('T')[0] : '?';
+  const lastDate = entries[entries.length - 1]?.date instanceof Date ? entries[entries.length - 1].date.toISOString().split('T')[0] : '?';
+  parts.push(`Período: ${entries.length} días con datos (${lastDate} a ${firstDate})\n`);
 
-  for (const cat of ACCOUNTABILITY_CATEGORIES) {
+  for (const cat of categories) {
     const scores = entries
       .map((e) => {
         const h = (e.habitScores as HabitScores)[cat.key];
@@ -101,7 +108,7 @@ function formatQueryResults(queryParams: QueryParams, entries: Array<{ date: Dat
       .filter((s): s is number => s !== null && s !== undefined);
 
     if (scores.length === 0) {
-      parts.push(`${cat.emoji} ${cat.label}: Sin datos`);
+      parts.push(`${cat.emoji} ${cat.name}: Sin datos`);
       continue;
     }
 
@@ -111,15 +118,57 @@ function formatQueryResults(queryParams: QueryParams, entries: Array<{ date: Dat
       ? (scores[scores.length - 1] > scores[0] ? 'mejorando' : scores[scores.length - 1] < scores[0] ? 'empeorando' : 'estable')
       : 'sin tendencia';
 
-    parts.push(`${cat.emoji} ${cat.label}: Promedio ${avg}%, Último ${latest}%, Tendencia: ${trend}`);
+    parts.push(`${cat.emoji} ${cat.name}: Promedio ${avg}%, Último ${latest}%, Tendencia: ${trend}`);
   }
 
   parts.push('\nResúmenes diarios:');
   entries.forEach((e) => {
-    parts.push(`- ${e.date.toISOString().split('T')[0]}: ${e.summary}`);
+    const d = e.date instanceof Date ? e.date.toISOString().split('T')[0] : String(e.date);
+    parts.push(`- ${d}: ${e.summary}`);
   });
 
   return parts.join('\n');
+}
+
+async function ensureUserHabits(userId: string): Promise<HabitCategory[]> {
+  const existing = await prisma.accountabilityHabit.findMany({
+    where: { userId },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  if (existing.length > 0) {
+    return existing.map((h) => ({
+      key: h.key,
+      name: h.name,
+      emoji: h.emoji,
+      description: h.description,
+      isDefault: h.isDefault,
+    }));
+  }
+
+  const created = await Promise.all(
+    DEFAULT_HABITS.map((h, i) =>
+      prisma.accountabilityHabit.create({
+        data: {
+          userId,
+          key: h.key,
+          name: h.name,
+          emoji: h.emoji,
+          description: h.description,
+          isDefault: true,
+          sortOrder: i,
+        },
+      })
+    )
+  );
+
+  return created.map((h) => ({
+    key: h.key,
+    name: h.name,
+    emoji: h.emoji,
+    description: h.description,
+    isDefault: h.isDefault,
+  }));
 }
 
 async function callLlm(messages: ChatMessage[]): Promise<string> {
@@ -169,8 +218,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Question is required' }, { status: 400 });
     }
 
+    const categories = await ensureUserHabits(userId);
+
+    const querySystemPrompt = buildQuerySystemPrompt(categories);
+
     const queryMessages: ChatMessage[] = [
-      { role: 'system', content: ACCOUNTABILITY_QUERY_SYSTEM_PROMPT },
+      { role: 'system', content: querySystemPrompt },
       { role: 'user', content: question },
     ];
 
@@ -194,7 +247,11 @@ export async function POST(req: NextRequest) {
       select: { date: true, habitScores: true, summary: true },
     });
 
-    const formattedResults = formatQueryResults(queryParams, entries as Array<{ date: Date; habitScores: HabitScores; summary: string }>);
+    const formattedResults = formatQueryResults(
+      queryParams,
+      entries as Array<{ date: Date; habitScores: HabitScores; summary: string }>,
+      categories
+    );
 
     const responsePrompt = ACCOUNTABILITY_RESPONSE_PROMPT
       .replace('{{QUERY_RESULTS}}', formattedResults)

@@ -10,13 +10,27 @@ import {
   BarChart3,
   Calendar,
   Mic,
+  Plus,
+  X,
 } from 'lucide-react';
 import styles from './accountability.module.css';
-import { ACCOUNTABILITY_CATEGORIES, type HabitScores } from '@/lib/accountability';
+
+type HabitCategory = {
+  id: string;
+  key: string;
+  name: string;
+  emoji: string;
+  description: string;
+  isDefault: boolean;
+  sortOrder: number;
+};
+
+type HabitScore = { score: number | null; notes: string };
+type HabitScores = Record<string, HabitScore>;
 
 type CheckInData = {
   id: string;
-  rawText: string;
+  rawText?: string;
   habitScores: HabitScores;
   feedback: string;
   summary: string;
@@ -42,8 +56,8 @@ type HistoryEntry = {
 
 const SCORE_COLORS: Record<string, string> = {
   sueño: '#8b5cf6',
-  orden_cuarto: '#14b8a6',
-  tesis: '#f59e0b',
+  organizacion: '#14b8a6',
+  academico: '#f59e0b',
   proyectos: '#3b82f6',
   dopamina: '#ef4444',
 };
@@ -51,7 +65,7 @@ const SCORE_COLORS: Record<string, string> = {
 const QUICK_PROMPTS = [
   '¿Cómo me fue esta semana?',
   '¿Cuál fue mi mejor día del mes?',
-  '¿Cómo estoy con la tesis?',
+  '¿Cómo estoy con académico?',
   '¿He mejorado mi sueño?',
   'Resumen del último mes',
 ];
@@ -63,16 +77,27 @@ function getScoreColor(score: number | null): string {
   return 'var(--accent-danger)';
 }
 
+function getBarColor(key: string): string {
+  return SCORE_COLORS[key] || '#6366f1';
+}
+
 export default function AccountabilityPage() {
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [todayData, setTodayData] = useState<CheckInData | null>(null);
+  const [habits, setHabits] = useState<HabitCategory[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyRange, setHistoryRange] = useState<'week' | 'month' | 'all'>('week');
   const [queryQuestion, setQueryQuestion] = useState('');
   const [isQuerying, setIsQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [showHabitModal, setShowHabitModal] = useState(false);
+  const [newHabitName, setNewHabitName] = useState('');
+  const [newHabitEmoji, setNewHabitEmoji] = useState('📋');
+  const [newHabitDesc, setNewHabitDesc] = useState('');
+  const [isCreatingHabit, setIsCreatingHabit] = useState(false);
 
   const fetchToday = useCallback(async () => {
     try {
@@ -81,9 +106,17 @@ export default function AccountabilityPage() {
         const data = await res.json();
         setTodayData(data);
       }
-    } catch {
-      // silent
-    }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchHabits = useCallback(async () => {
+    try {
+      const res = await fetch('/api/accountability/habits');
+      if (res.ok) {
+        const data = await res.json();
+        setHabits(data);
+      }
+    } catch { /* silent */ }
   }, []);
 
   const fetchHistory = useCallback(async () => {
@@ -102,18 +135,11 @@ export default function AccountabilityPage() {
         const data = await res.json();
         setHistory(Array.isArray(data) ? data : []);
       }
-    } catch {
-      // silent
-    }
+    } catch { /* silent */ }
   }, [historyRange]);
 
-  useEffect(() => {
-    fetchToday();
-  }, [fetchToday]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  useEffect(() => { fetchToday(); fetchHabits(); }, [fetchToday, fetchHabits]);
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
   const handleSubmit = async () => {
     if (!text.trim()) return;
@@ -143,7 +169,6 @@ export default function AccountabilityPage() {
   const handleQuery = async (question?: string) => {
     const q = question || queryQuestion.trim();
     if (!q) return;
-
     setError(null);
     setIsQuerying(true);
     setQueryResult(null);
@@ -154,10 +179,8 @@ export default function AccountabilityPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error en la consulta');
-
       setQueryResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error en la consulta');
@@ -166,17 +189,54 @@ export default function AccountabilityPage() {
     }
   };
 
+  const handleCreateHabit = async () => {
+    if (!newHabitName.trim()) return;
+    setIsCreatingHabit(true);
+    try {
+      const res = await fetch('/api/accountability/habits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newHabitName.trim(),
+          emoji: newHabitEmoji,
+          description: newHabitDesc.trim() || newHabitName.trim(),
+        }),
+      });
+      if (res.ok) {
+        setShowHabitModal(false);
+        setNewHabitName('');
+        setNewHabitEmoji('📋');
+        setNewHabitDesc('');
+        fetchHabits();
+      }
+    } catch { /* silent */ } finally {
+      setIsCreatingHabit(false);
+    }
+  };
+
+  const handleDeleteHabit = async (id: string) => {
+    try {
+      await fetch(`/api/accountability/habits?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      fetchHabits();
+    } catch { /* silent */ }
+  };
+
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
+    const dDay = new Date(d);
+    dDay.setHours(0, 0, 0, 0);
 
-    if (d.getTime() === today.getTime()) return 'Hoy';
-    if (d.getTime() === yesterday.getTime()) return 'Ayer';
+    if (dDay.getTime() === today.getTime()) return 'Hoy';
+    if (dDay.getTime() === yesterday.getTime()) return 'Ayer';
     return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
   };
+
+  const EMOJI_OPTIONS = ['📋', '🏃', '💪', '🧘', '📖', '🎯', '💰', '❤️', '🎨', '🎵', '✍️', '🌱', '🧹', '🍽️', '💧', '📱', '🔇', '🚶', '🏋️', '🎮'];
 
   return (
     <div className={styles.page}>
@@ -216,37 +276,23 @@ export default function AccountabilityPage() {
             disabled={isSubmitting || !text.trim()}
           >
             {isSubmitting ? (
-              <>
-                <Loader2 size={15} className={styles.submitBtnSpinner} />
-                Analizando...
-              </>
+              <><Loader2 size={15} className={styles.submitBtnSpinner} /> Analizando...</>
             ) : (
-              <>
-                <Sparkles size={15} />
-                Enviar Check-in
-              </>
+              <><Sparkles size={15} /> Enviar Check-in</>
             )}
           </button>
         </div>
 
-        {error && (
-          <p style={{ color: 'var(--accent-danger)', fontSize: '13px', marginTop: '12px' }}>{error}</p>
-        )}
+        {error && <p style={{ color: 'var(--accent-danger)', fontSize: '13px', marginTop: '12px' }}>{error}</p>}
       </div>
 
       {/* Two Column: Feedback + Scores */}
       <div className={styles.contentGrid}>
-        {/* Feedback */}
         <div className={styles.feedbackCard}>
           <div className={styles.feedbackHeader}>
-            <div className={styles.feedbackAvatar}>
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <div className={styles.feedbackLabel}>Tu Coach</div>
-            </div>
+            <div className={styles.feedbackAvatar}><Sparkles size={18} /></div>
+            <div><div className={styles.feedbackLabel}>Tu Coach</div></div>
           </div>
-
           {todayData ? (
             <>
               <div className={styles.feedbackText}>{todayData.feedback}</div>
@@ -265,26 +311,46 @@ export default function AccountabilityPage() {
           )}
         </div>
 
-        {/* Habit Scores */}
         <div className={styles.scoresCard}>
-          <div className={styles.scoresHeader}>Salud de Hábitos — Hoy</div>
+          <div className={styles.scoresHeaderRow}>
+            <span className={styles.scoresHeader}>Salud de Hábitos — Hoy</span>
+            <button className={styles.addHabitBtn} onClick={() => setShowHabitModal(true)} title="Agregar hábito personalizado">
+              <Plus size={14} />
+            </button>
+          </div>
 
-          {todayData ? (
-            ACCOUNTABILITY_CATEGORIES.map((cat) => {
-              const h = (todayData.habitScores as HabitScores)[cat.key];
+          {habits.length === 0 ? (
+            <div className={styles.scoresEmpty}>
+              <BarChart3 size={40} className={styles.feedbackEmptyIcon} />
+              <span>Sin datos de hoy todavía</span>
+            </div>
+          ) : (
+            habits.map((cat) => {
+              const h = todayData ? (todayData.habitScores as HabitScores)[cat.key] : null;
               const score = h?.score ?? null;
               return (
                 <div key={cat.key} className={styles.scoreRow}>
                   <span className={styles.scoreEmoji}>{cat.emoji}</span>
                   <div className={styles.scoreInfo}>
-                    <div className={styles.scoreLabel}>{cat.label}</div>
+                    <div className={styles.scoreLabelRow}>
+                      <span className={styles.scoreLabel}>{cat.name}</span>
+                      {!cat.isDefault && (
+                        <button
+                          className={styles.deleteHabitBtn}
+                          onClick={() => handleDeleteHabit(cat.id)}
+                          title="Eliminar hábito"
+                        >
+                          <X size={11} />
+                        </button>
+                      )}
+                    </div>
                     <div className={styles.scoreBarWrap}>
                       <div
                         className={styles.scoreBarFill}
                         style={{
                           width: `${score ?? 0}%`,
                           background: score !== null
-                            ? `linear-gradient(90deg, ${SCORE_COLORS[cat.key] || 'var(--accent-primary)'}, ${SCORE_COLORS[cat.key] || 'var(--accent-primary)'}88)`
+                            ? `linear-gradient(90deg, ${getBarColor(cat.key)}, ${getBarColor(cat.key)}88)`
                             : 'transparent',
                         }}
                       />
@@ -292,20 +358,13 @@ export default function AccountabilityPage() {
                     {h?.notes && <div className={styles.scoreNotes}>{h.notes}</div>}
                   </div>
                   {score !== null ? (
-                    <span className={styles.scoreValue} style={{ color: getScoreColor(score) }}>
-                      {score}%
-                    </span>
+                    <span className={styles.scoreValue} style={{ color: getScoreColor(score) }}>{score}%</span>
                   ) : (
                     <span className={styles.scoreNoData}>—</span>
                   )}
                 </div>
               );
             })
-          ) : (
-            <div className={styles.scoresEmpty}>
-              <BarChart3 size={40} className={styles.feedbackEmptyIcon} />
-              <span>Sin datos de hoy todavía</span>
-            </div>
           )}
         </div>
       </div>
@@ -316,46 +375,24 @@ export default function AccountabilityPage() {
           <TrendingUp size={16} color="var(--accent-warning)" />
           <span className={styles.queryHeaderTitle}>Consultar mi historial</span>
         </div>
-
         <div className={styles.quickPrompts}>
           {QUICK_PROMPTS.map((prompt) => (
-            <button
-              key={prompt}
-              className={styles.quickPromptBtn}
-              onClick={() => handleQuery(prompt)}
-            >
-              {prompt}
-            </button>
+            <button key={prompt} className={styles.quickPromptBtn} onClick={() => handleQuery(prompt)}>{prompt}</button>
           ))}
         </div>
-
         <div className={styles.queryInputRow}>
           <input
             className={styles.queryInput}
             value={queryQuestion}
             onChange={(e) => setQueryQuestion(e.target.value)}
-            placeholder="Ej: ¿Cómo me fue en la tesis este mes?"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleQuery();
-              }
-            }}
+            placeholder="Ej: ¿Cómo me fue en académico este mes?"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleQuery(); } }}
           />
-          <button
-            className={styles.queryAskBtn}
-            onClick={() => handleQuery()}
-            disabled={isQuerying || !queryQuestion.trim()}
-          >
-            {isQuerying ? (
-              <Loader2 size={14} className={styles.submitBtnSpinner} />
-            ) : (
-              <Send size={14} />
-            )}
+          <button className={styles.queryAskBtn} onClick={() => handleQuery()} disabled={isQuerying || !queryQuestion.trim()}>
+            {isQuerying ? <Loader2 size={14} className={styles.submitBtnSpinner} /> : <Send size={14} />}
             Preguntar
           </button>
         </div>
-
         {queryResult && (
           <>
             <div className={styles.queryAnswer}>{queryResult.answer}</div>
@@ -383,7 +420,6 @@ export default function AccountabilityPage() {
             ))}
           </div>
         </div>
-
         {history.length === 0 ? (
           <div className={styles.chartEmpty}>Sin entradas en este período</div>
         ) : (
@@ -393,7 +429,7 @@ export default function AccountabilityPage() {
                 <div className={styles.entryDate}>{formatDate(entry.date)}</div>
                 <div className={styles.entrySummary}>{entry.summary}</div>
                 <div className={styles.entryScores}>
-                  {ACCOUNTABILITY_CATEGORIES.map((cat) => {
+                  {habits.map((cat) => {
                     const score = (entry.habitScores as HabitScores)[cat.key]?.score;
                     if (score === null || score === undefined) return null;
                     return (
@@ -408,6 +444,60 @@ export default function AccountabilityPage() {
           </div>
         )}
       </div>
+
+      {/* Habit Creation Modal */}
+      {showHabitModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowHabitModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <span>Nuevo Hábito Personalizado</span>
+              <button className={styles.modalClose} onClick={() => setShowHabitModal(false)}><X size={18} /></button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Emoji</label>
+                <div className={styles.emojiGrid}>
+                  {EMOJI_OPTIONS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      className={`${styles.emojiOption} ${newHabitEmoji === emoji ? styles.emojiOptionActive : ''}`}
+                      onClick={() => setNewHabitEmoji(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Nombre</label>
+                <input
+                  className={styles.modalInput}
+                  value={newHabitName}
+                  onChange={(e) => setNewHabitName(e.target.value)}
+                  placeholder="Ej: Ejercicio, Meditación..."
+                />
+              </div>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>Descripción (para la IA)</label>
+                <input
+                  className={styles.modalInput}
+                  value={newHabitDesc}
+                  onChange={(e) => setNewHabitDesc(e.target.value)}
+                  placeholder="Ej: Actividad física, cardio, gimnasio..."
+                />
+              </div>
+              <button
+                className={styles.submitBtn}
+                onClick={handleCreateHabit}
+                disabled={isCreatingHabit || !newHabitName.trim()}
+                style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
+              >
+                {isCreatingHabit ? <><Loader2 size={15} className={styles.submitBtnSpinner} /> Creando...</> : 'Crear Hábito'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

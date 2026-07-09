@@ -23,31 +23,29 @@ export async function POST(req: NextRequest) {
     const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
     const habitId = typeof body.habitId === 'string' ? body.habitId : '';
 
-    if (!sessionId || !habitId) {
-      return NextResponse.json({ error: 'sessionId and habitId are required' }, { status: 400 });
+    if (!sessionId) {
+      return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
     }
 
-    const [breakdownSession, habit] = await Promise.all([
-      prisma.breakdownSession.findFirst({
-        where: {
-          id: sessionId,
-          userId,
-        },
-      }),
-      prisma.habit.findFirst({
-        where: {
-          id: habitId,
-          userId,
-        },
-      }),
-    ]);
+    const breakdownSession = await prisma.breakdownSession.findFirst({
+      where: {
+        id: sessionId,
+        userId,
+      },
+    });
 
     if (!breakdownSession) {
       return NextResponse.json({ error: 'Breakdown session not found' }, { status: 404 });
     }
 
-    if (!habit) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 });
+    let habit: { id: string; color: string } | null = null;
+    if (habitId) {
+      habit = await prisma.habit.findFirst({
+        where: {
+          id: habitId,
+          userId,
+        },
+      });
     }
 
     const root = extractRootNode(breakdownSession.structuredOutput);
@@ -62,12 +60,12 @@ export async function POST(req: NextRequest) {
         prisma.task.create({
           data: {
             userId,
-            habitId,
+            habitId: habitId || null,
             title: leaf.title,
             descriptionHtml: toDescriptionHtml(leaf.description),
             estimatedPomodoros: leaf.pomodoroEstimate,
             dueDate: leaf.dueDate ? new Date(leaf.dueDate + 'T23:59:59') : null,
-            color: habit.color,
+            color: habit?.color || '#6366f1',
             status: 'todo',
           },
           select: {

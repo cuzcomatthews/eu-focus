@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Flame, Play, Zap, Users, Target } from 'lucide-react';
+import { Flame, Play, Users, Target } from 'lucide-react';
 import styles from './dashboard.module.css';
 
 interface DashboardData {
@@ -11,18 +11,10 @@ interface DashboardData {
   nextTask: {
     id: string;
     title: string;
-    habitName: string;
     dueDate: string | null;
     estimatedPomodoros: number;
     completedPomodoros: number;
   } | null;
-  habits: {
-    id: string;
-    name: string;
-    color: string;
-    emoji?: string;
-    streak: number;
-  }[];
   todayPomodoros: number;
   squadActivity: {
     id: string;
@@ -161,32 +153,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className={styles.habitsSection}>
-            <div className={styles.sectionMiniHeader}>Active Habits</div>
-            <div className={styles.habitsRow}>
-              {data?.habits?.slice(0,3).map(habit => (
-                <div key={habit.id} className={styles.habitPill}>
-                  <div className={styles.habitPillHeader}>
-                    <div className={styles.habitEmoji} style={{ backgroundColor: `${habit.color}15`, color: habit.color }}>
-                      {habit.emoji || <Zap size={14} />}
-                    </div>
-                    <div className={styles.habitDots}>
-                      <div className={styles.dot} style={{ background: habit.color }} />
-                      <div className={styles.dot} style={{ background: `${habit.color}40` }} />
-                      <div className={styles.dot} style={{ background: `${habit.color}40` }} />
-                    </div>
-                  </div>
-                  <div className={styles.habitInfo}>
-                    <div className={styles.habitTitle}>{habit.name}</div>
-                    <div className={styles.habitGoal}>Streak: {habit.streak} días</div>
-                  </div>
-                  <div className={styles.habitProgress}>
-                    <div className={styles.habitProgressBar} style={{ background: habit.color, width: '33%' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
 
         {/* Right Column: Up Next & Squad */}

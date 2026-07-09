@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
 import {
   Plus, MoreVertical, Play, Check, Pencil, Trash2, Clock,
-  Zap, Calendar, Flame, Repeat,
+  Calendar,
   X, ChevronLeft, ChevronRight, Eye
 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -26,21 +24,6 @@ interface Task {
   estimatedPomodoros: number;
   completedPomodoros: number;
   columnOrder: number;
-  habit: { name: string; color: string; iconSvg: string; emoji: string };
-  habitId: string;
-}
-
-interface Habit {
-  id: string;
-  name: string;
-  iconSvg: string;
-  emoji: string;
-  color: string;
-  recurrenceType: string;
-  recurrenceCount: number;
-  recurrenceDays: string;
-  streaks: { currentCount: number; longestCount: number }[];
-  _count: { tasks: number };
 }
 
 const TASK_COLORS = [
@@ -48,35 +31,21 @@ const TASK_COLORS = [
   '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
 ];
 
-const DAYS = [
-  { key: 'dom', label: 'Dom' },
-  { key: 'lun', label: 'Lun' },
-  { key: 'mar', label: 'Mar' },
-  { key: 'mié', label: 'Mié' },
-  { key: 'jue', label: 'Jue' },
-  { key: 'vie', label: 'Vie' },
-  { key: 'sáb', label: 'Sáb' },
-];
 
 export default function WorkspacePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'tasks' | 'habits' | 'calendar' | 'breakdown'>(
-    searchParams.get('tab') === 'habits'
-      ? 'habits'
-      : searchParams.get('tab') === 'calendar'
-        ? 'calendar'
-        : searchParams.get('tab') === 'breakdown'
-          ? 'breakdown'
-        : 'tasks'
+  const [activeTab, setActiveTab] = useState<'tasks' | 'calendar' | 'breakdown'>(
+    searchParams.get('tab') === 'calendar'
+      ? 'calendar'
+      : searchParams.get('tab') === 'breakdown'
+        ? 'breakdown'
+      : 'tasks'
   );
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showHabitModal, setShowHabitModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'task' | 'habit'; id: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'task'; id: string } | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -86,18 +55,8 @@ export default function WorkspacePage() {
   // Task form state
   const [taskTitle, setTaskTitle] = useState('');
   const [taskColor, setTaskColor] = useState('#6366f1');
-  const [taskHabitId, setTaskHabitId] = useState('');
   const [taskDueDate, setTaskDueDate] = useState('');
   const [taskEstPomodoros, setTaskEstPomodoros] = useState(1);
-
-  // Habit form state
-  const [habitName, setHabitName] = useState('');
-  const [habitEmoji, setHabitEmoji] = useState('📚');
-  const [habitColor, setHabitColor] = useState('#6366f1');
-  const [habitRecurrence, setHabitRecurrence] = useState('daily');
-  const [habitRecurrenceCount, setHabitRecurrenceCount] = useState(1);
-  const [habitDays, setHabitDays] = useState<string[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -122,31 +81,16 @@ export default function WorkspacePage() {
     if (res.ok) setTasks(await res.json());
   }, []);
 
-  const fetchHabits = useCallback(async () => {
-    const res = await fetch('/api/habits');
-    if (res.ok) setHabits(await res.json());
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
 
     const loadInitialData = async () => {
-      const [tasksRes, habitsRes] = await Promise.all([
-        fetch('/api/tasks'),
-        fetch('/api/habits'),
-      ]);
+      const res = await fetch('/api/tasks');
 
-      if (tasksRes.ok) {
-        const tasksData: Task[] = await tasksRes.json();
+      if (res.ok) {
+        const tasksData: Task[] = await res.json();
         if (!cancelled) {
           setTasks(tasksData);
-        }
-      }
-
-      if (habitsRes.ok) {
-        const habitsData: Habit[] = await habitsRes.json();
-        if (!cancelled) {
-          setHabits(habitsData);
         }
       }
     };
@@ -163,7 +107,6 @@ export default function WorkspacePage() {
       setEditingTask(task);
       setTaskTitle(task.title);
       setTaskColor(task.color);
-      setTaskHabitId(task.habitId);
       setTaskDueDate(task.dueDate ? task.dueDate.split('T')[0] : '');
       setTaskEstPomodoros(task.estimatedPomodoros);
       editor?.commands.setContent(task.descriptionHtml || '');
@@ -171,7 +114,6 @@ export default function WorkspacePage() {
       setEditingTask(null);
       setTaskTitle('');
       setTaskColor('#6366f1');
-      setTaskHabitId(habits[0]?.id || '');
       setTaskDueDate('');
       setTaskEstPomodoros(1);
       editor?.commands.setContent('');
@@ -181,10 +123,9 @@ export default function WorkspacePage() {
   };
 
   const saveTask = async () => {
-    if (!taskTitle || !taskHabitId) return;
+    if (!taskTitle) return;
     const body = {
       title: taskTitle,
-      habitId: taskHabitId,
       color: taskColor,
       dueDate: taskDueDate || null,
       estimatedPomodoros: taskEstPomodoros,
@@ -220,70 +161,12 @@ export default function WorkspacePage() {
     fetchTasks();
   };
 
-  const openHabitModal = (habit?: Habit) => {
-    if (habit) {
-      setEditingHabit(habit);
-      setHabitName(habit.name);
-      setHabitEmoji(habit.emoji || '📚');
-      setHabitColor(habit.color);
-      setHabitRecurrence(habit.recurrenceType);
-      setHabitRecurrenceCount(habit.recurrenceCount);
-      setHabitDays(habit.recurrenceDays ? habit.recurrenceDays.split(',').filter(Boolean) : []);
-    } else {
-      setEditingHabit(null);
-      setHabitName('');
-      setHabitEmoji('📚');
-      setHabitColor('#6366f1');
-      setHabitRecurrence('daily');
-      setHabitRecurrenceCount(1);
-      setHabitDays([]);
-    }
-    setShowEmojiPicker(false);
-    playPop();
-    setShowHabitModal(true);
-  };
-
-  const toggleDay = (day: string) => {
-    setHabitDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
-  };
-
-  const saveHabit = async () => {
-    if (!habitName) return;
-    const body = {
-      name: habitName,
-      iconSvg: 'book',
-      emoji: habitEmoji,
-      color: habitColor,
-      recurrenceType: habitRecurrence,
-      recurrenceCount: habitRecurrenceCount,
-      recurrenceDays: habitDays.join(','),
-    };
-
-    if (editingHabit) {
-      await fetch('/api/habits', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ habitId: editingHabit.id, ...body }),
-      });
-    } else {
-      await fetch('/api/habits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-    }
-    playSuccess();
-    setShowHabitModal(false);
-    fetchHabits();
-  };
-
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-    const endpoint = deleteConfirm.type === 'task' ? 'tasks' : 'habits';
-    await fetch(`/api/${endpoint}?id=${deleteConfirm.id}`, { method: 'DELETE' });
+    await fetch(`/api/tasks?id=${deleteConfirm.id}`, { method: 'DELETE' });
     playAlert();
     setDeleteConfirm(null);
-    if (deleteConfirm.type === 'task') fetchTasks(); else fetchHabits();
+    fetchTasks();
   };
 
   // Drag and drop handlers
@@ -346,7 +229,6 @@ export default function WorkspacePage() {
 
       <div className={styles.tabs}>
         <button className={`${styles.tab} ${activeTab === 'tasks' ? styles.tabActive : ''}`} onClick={() => setActiveTab('tasks')}>TASKS</button>
-        <button className={`${styles.tab} ${activeTab === 'habits' ? styles.tabActive : ''}`} onClick={() => setActiveTab('habits')}>HABITS</button>
         <button className={`${styles.tab} ${activeTab === 'calendar' ? styles.tabActive : ''}`} onClick={() => setActiveTab('calendar')}>CALENDAR</button>
         <button className={`${styles.tab} ${activeTab === 'breakdown' ? styles.tabActive : ''}`} onClick={() => setActiveTab('breakdown')}>BREAK IT DOWN</button>
       </div>
@@ -360,15 +242,7 @@ export default function WorkspacePage() {
             </button>
           </div>
 
-          {habits.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>Crea un hábito primero antes de agregar tareas</p>
-              <button className={styles.addBtn} onClick={() => { setActiveTab('habits'); openHabitModal(); }}>
-                <Plus size={16} /> Crear Hábito
-              </button>
-            </div>
-          ) : (
-            <div className={styles.kanbanBoard}>
+          <div className={styles.kanbanBoard}>
               {columns.map(col => {
                 const colTasks = tasks.filter(t => t.status === col.id);
                 return (
@@ -396,7 +270,7 @@ export default function WorkspacePage() {
                         >
                           <div className={styles.taskCardTop}>
                             <div className={styles.taskEmojis}>
-                              <span>{task.habit?.emoji || '📚'}</span>
+                              <span>📋</span>
                             </div>
                             <div className={styles.taskMenuWrap}>
                               <button
@@ -447,62 +321,6 @@ export default function WorkspacePage() {
                 );
               })}
             </div>
-          )}
-        </>
-      )}
-
-      {activeTab === 'habits' && (
-        <>
-          <div className={styles.kanbanHeader}>
-            <h2 className={styles.kanbanTitle}>Mis Hábitos</h2>
-            <button className={styles.addBtn} onClick={() => openHabitModal()}>
-              <Plus size={16} /> Nuevo Hábito
-            </button>
-          </div>
-          <div className={styles.habitsContent}>
-            {habits.map(habit => (
-              <div key={habit.id} className={styles.habitCardLarge}>
-                <div className={styles.habitCardHeader}>
-                  <div className={styles.habitEmoji}>{habit.emoji || '📚'}</div>
-                  <span className={styles.habitCardName}>{habit.name}</span>
-                  <div className={styles.habitColorDot} style={{ background: habit.color }} />
-                </div>
-                <div className={styles.habitCardMeta}>
-                  <span className={styles.habitCardMetaRow}>
-                    <Repeat size={13} />
-                    {habit.recurrenceType === 'daily' ? 'Diario' : habit.recurrenceType === 'weekly' ? `${habit.recurrenceCount}x por semana` : `${habit.recurrenceCount}x por mes`}
-                  </span>
-                  {habit.recurrenceDays && (
-                    <span className={styles.habitCardMetaRow}>
-                      <Calendar size={13} />
-                      {habit.recurrenceDays.split(',').join(', ')}
-                    </span>
-                  )}
-                  <span className={styles.habitCardMetaRow}>
-                    <Flame size={13} />
-                    {habit.streaks?.[0]?.currentCount || 0} días de racha
-                  </span>
-                  <span className={styles.habitCardMetaRow}>
-                    <Zap size={13} />
-                    {habit._count?.tasks || 0} tareas
-                  </span>
-                </div>
-                <div className={styles.habitCardActions}>
-                  <button className={`${styles.habitActionBtn} ${styles.habitEditBtn}`} onClick={() => openHabitModal(habit)}>
-                    <Pencil size={12} /> Editar
-                  </button>
-                  <button className={`${styles.habitActionBtn} ${styles.habitDeleteBtn}`} onClick={() => setDeleteConfirm({ type: 'habit', id: habit.id })}>
-                    <Trash2 size={12} /> Eliminar
-                  </button>
-                </div>
-              </div>
-            ))}
-            {habits.length === 0 && (
-              <div className={styles.emptyState}>
-                <p>No tienes hábitos aún. ¡Crea el primero!</p>
-              </div>
-            )}
-          </div>
         </>
       )}
 
@@ -657,13 +475,6 @@ export default function WorkspacePage() {
 
               <div className={styles.modalRow}>
                 <div className={styles.modalField}>
-                  <label className={styles.modalLabel}>Hábito *</label>
-                  <select className={styles.modalSelect} value={taskHabitId} onChange={e => setTaskHabitId(e.target.value)}>
-                    <option value="">Seleccionar hábito</option>
-                    {habits.map(h => <option key={h.id} value={h.id}>{h.emoji || '📚'} {h.name}</option>)}
-                  </select>
-                </div>
-                <div className={styles.modalField}>
                   <label className={styles.modalLabel}>Color del Tag</label>
                   <div className={styles.colorCircles}>
                     {TASK_COLORS.map(c => (
@@ -720,81 +531,11 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Habit Modal */}
-      {showHabitModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowHabitModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <span className={styles.modalTitle}>{editingHabit ? 'Editar Hábito' : 'Crear Nuevo Hábito'}</span>
-              <button className={styles.modalClose} onClick={() => setShowHabitModal(false)}><X size={18} /></button>
-            </div>
-            <div className={styles.modalForm}>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>Emoji</label>
-                <div className={styles.emojiPickerHeaderRow}>
-                  <div className={styles.emojiSelected}>{habitEmoji}</div>
-                  <button type="button" className={styles.emojiPickerToggle} onClick={() => setShowEmojiPicker(prev => !prev)}>
-                    {showEmojiPicker ? 'Cerrar selector' : 'Elegir emoji'}
-                  </button>
-                </div>
-                {showEmojiPicker && (
-                  <div className={styles.emojiPickerWrapper}>
-                    <Picker
-                      data={data}
-                      onEmojiSelect={(emojiData: { native?: string }) => {
-                        if (emojiData.native) {
-                          setHabitEmoji(emojiData.native);
-                        }
-                        setShowEmojiPicker(false);
-                      }}
-                      locale="es"
-                      previewPosition="none"
-                      skinTonePosition="none"
-                      perLine={9}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>Nombre del Hábito</label>
-                <input className={styles.modalInput} value={habitName} onChange={e => setHabitName(e.target.value)} placeholder="Ej: Estudiar, Ejercicio..." />
-              </div>
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>Color del Tag</label>
-                <div className={styles.colorCircles}>
-                  {TASK_COLORS.map(c => (
-                    <button key={c} className={`${styles.colorCircle} ${habitColor === c ? styles.colorCircleActive : ''}`} style={{ background: c }} onClick={() => setHabitColor(c)} />
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>Días Programados</label>
-                <div className={styles.dayPicker}>
-                  {DAYS.map(d => (
-                    <button key={d.key} className={`${styles.dayBtn} ${habitDays.includes(d.key) ? styles.dayBtnActive : ''}`} onClick={() => toggleDay(d.key)}>
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className={styles.modalActions}>
-                <button className={styles.modalCancelBtn} onClick={() => setShowHabitModal(false)}>Cancelar</button>
-                <button className={styles.modalSubmitBtn} onClick={saveHabit}>{editingHabit ? 'Guardar' : 'Guardar Hábito'}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className={styles.confirmOverlay} onClick={() => setDeleteConfirm(null)}>
           <div className={styles.confirmBox} onClick={e => e.stopPropagation()}>
-            <p>¿Estás seguro de que quieres eliminar este {deleteConfirm.type === 'task' ? 'tarea' : 'hábito'}? Esta acción no se puede deshacer.</p>
+            <p>¿Estás seguro de que quieres eliminar esta tarea? Esta acción no se puede deshacer.</p>
             <div className={styles.confirmActions}>
               <button className={styles.confirmCancel} onClick={() => setDeleteConfirm(null)}>Cancelar</button>
               <button className={styles.confirmDelete} onClick={handleDelete}>Eliminar</button>

@@ -29,12 +29,32 @@ export async function GET() {
   const recentPomodoros = recentSessions.length;
   const recentMinutes = recentSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
 
-  const habits = await prisma.habit.findMany({ where: { userId } });
-  const timeByHabit = habits.map(h => ({
-    name: h.name,
-    color: h.color,
-    minutes: recentSessions.filter(s => s.habitId === h.id).reduce((sum, s) => sum + s.durationMinutes, 0),
-  })).filter(h => h.minutes > 0);
+  const accountabilityEntries = await prisma.dailyCheckIn.findMany({
+    where: { userId, date: { gte: thirtyDaysAgo } },
+    orderBy: { date: 'asc' },
+    select: { date: true, habitScores: true, summary: true },
+  });
+
+  const habitsTrend: Record<string, { name: string; emoji: string; scores: { date: string; score: number }[] }> = {};
+  const habits = await prisma.accountabilityHabit.findMany({
+    where: { userId },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  for (const h of habits) {
+    habitsTrend[h.key] = { name: h.name, emoji: h.emoji, scores: [] };
+  }
+
+  for (const entry of accountabilityEntries) {
+    const scores = entry.habitScores as Record<string, { score: number | null }>;
+    const dateStr = entry.date instanceof Date ? entry.date.toISOString().split('T')[0] : String(entry.date);
+    for (const h of habits) {
+      const s = scores[h.key];
+      if (s && typeof s.score === 'number') {
+        habitsTrend[h.key]?.scores.push({ date: dateStr, score: s.score });
+      }
+    }
+  }
 
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -67,7 +87,7 @@ export async function GET() {
     recentMinutes,
     uniqueDaysLast7d,
     dailyAvgMinutes,
-    timeByHabit,
+    habitsTrend,
     heatmap,
     peakHours,
   });

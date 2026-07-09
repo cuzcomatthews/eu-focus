@@ -31,6 +31,7 @@ model User {
   audioFiles    AudioFile[]
   breakdownSessions BreakdownSession[]
   dailyCheckIns DailyCheckIn[]
+  accountabilityHabits AccountabilityHabit[]
 
   @@map("users")
 }
@@ -58,7 +59,7 @@ model Habit {
 model Task {
   id                  String    @id @default(cuid())
   userId              String    @map("user_id")
-  habitId             String    @map("habit_id")
+  habitId             String?   @map("habit_id")
   title               String
   descriptionHtml     String?   @map("description_html")
   color               String    @default("#6366f1")
@@ -71,7 +72,7 @@ model Task {
   createdAt           DateTime  @default(now()) @map("created_at")
 
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  habit    Habit             @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habit    Habit?            @relation(fields: [habitId], references: [id], onDelete: SetNull)
   sessions PomodoroSession[]
 
   @@map("tasks")
@@ -223,4 +224,21 @@ model DailyCheckIn {
 
   @@unique([userId, date])
   @@map("daily_check_ins")
+}
+
+model AccountabilityHabit {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  name        String
+  emoji       String   @default("📋")
+  description String   @default("")
+  key         String
+  isDefault   Boolean  @default(false) @map("is_default")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("accountability_habits")
 }

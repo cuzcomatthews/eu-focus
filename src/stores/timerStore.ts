@@ -9,13 +9,12 @@ interface TimerState {
   isRunning: boolean;
   activeTaskId: string | null;
   activeTaskTitle: string | null;
-  activeHabitName: string | null;
   focusDuration: number; // minutes
   breakDuration: number; // minutes
   startTimestamp: number | null; // epoch ms for persistence
 
   // Actions
-  startFocus: (taskId: string, taskTitle: string, habitName: string) => void;
+  startFocus: (taskId: string, taskTitle: string) => void;
   startBreak: () => void;
   pause: () => void;
   resume: () => void;
@@ -33,12 +32,11 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   isRunning: false,
   activeTaskId: null,
   activeTaskTitle: null,
-  activeHabitName: null,
   focusDuration: 25,
   breakDuration: 5,
   startTimestamp: null,
 
-  startFocus: (taskId, taskTitle, habitName) => {
+  startFocus: (taskId, taskTitle) => {
     const duration = get().focusDuration * 60;
     const now = Date.now();
     set({
@@ -48,7 +46,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       isRunning: true,
       activeTaskId: taskId,
       activeTaskTitle: taskTitle,
-      activeHabitName: habitName,
       startTimestamp: now,
     });
     persistTimer({
@@ -57,7 +54,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       totalTime: duration,
       taskId,
       taskTitle,
-      habitName,
       isPaused: false,
       pausedRemaining: 0,
     });
@@ -79,7 +75,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       totalTime: duration,
       taskId: get().activeTaskId,
       taskTitle: get().activeTaskTitle,
-      habitName: get().activeHabitName,
       isPaused: false,
       pausedRemaining: 0,
     });
@@ -94,7 +89,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       totalTime: state.totalTime,
       taskId: state.activeTaskId,
       taskTitle: state.activeTaskTitle,
-      habitName: state.activeHabitName,
       isPaused: true,
       pausedRemaining: state.timeRemaining,
     });
@@ -114,7 +108,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       totalTime: state.totalTime,
       taskId: state.activeTaskId,
       taskTitle: state.activeTaskTitle,
-      habitName: state.activeHabitName,
       isPaused: false,
       pausedRemaining: 0,
     });
@@ -159,7 +152,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       isRunning: false,
       activeTaskId: null,
       activeTaskTitle: null,
-      activeHabitName: null,
       startTimestamp: null,
     });
     clearPersistedTimer();
@@ -187,7 +179,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           isRunning: false,
           activeTaskId: data.taskId,
           activeTaskTitle: data.taskTitle,
-          activeHabitName: data.habitName,
           startTimestamp: data.startTimestamp,
         });
       } else {
@@ -200,7 +191,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
             isRunning: true,
             activeTaskId: data.taskId,
             activeTaskTitle: data.taskTitle,
-            activeHabitName: data.habitName,
             startTimestamp: data.startTimestamp,
           });
         } else {
@@ -219,7 +209,6 @@ interface PersistedTimer {
   totalTime: number;
   taskId: string | null;
   taskTitle: string | null;
-  habitName: string | null;
   isPaused: boolean;
   pausedRemaining: number;
 }

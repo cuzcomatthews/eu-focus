@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { title, habitId, color, dueDate, estimatedPomodoros, descriptionHtml } = body;
 
-  if (!title || !habitId) {
-    return NextResponse.json({ error: 'Title and habit are required' }, { status: 400 });
+  if (!title) {
+    return NextResponse.json({ error: 'Title is required' }, { status: 400 });
   }
 
   const task = await prisma.task.create({
@@ -171,7 +171,7 @@ export async function PATCH(req: NextRequest) {
           squadId: membership.squadId,
           userId: session.user.id,
           taskTitle: task.title,
-          habitName: task.habit?.name || 'Habito',
+          habitName: 'General',
           durationMinutes: task.estimatedPomodoros * 25, // Fallback guess for activity feed
           taskDescriptionPreview: task.descriptionHtml?.replace(/<[^>]*>/g, '').slice(0, 100) || null,
         },

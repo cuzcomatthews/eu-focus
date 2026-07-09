@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
-  ACCOUNTABILITY_SYSTEM_PROMPT,
-  ACCOUNTABILITY_CATEGORIES,
+  buildSystemPrompt,
+  DEFAULT_HABITS,
   type CheckInResult,
+  type HabitCategory,
   type HabitScores,
 } from '@/lib/accountability';
 
@@ -44,11 +45,52 @@ function parseJsonResponse(rawContent: string): unknown {
   return JSON.parse(trimmed.slice(start, end + 1));
 }
 
-function validateHabitScores(raw: unknown): HabitScores {
-  const result = {} as HabitScores;
+async function ensureUserHabits(userId: string): Promise<HabitCategory[]> {
+  const existing = await prisma.accountabilityHabit.findMany({
+    where: { userId },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  if (existing.length > 0) {
+    return existing.map((h) => ({
+      key: h.key,
+      name: h.name,
+      emoji: h.emoji,
+      description: h.description,
+      isDefault: h.isDefault,
+    }));
+  }
+
+  const created = await Promise.all(
+    DEFAULT_HABITS.map((h, i) =>
+      prisma.accountabilityHabit.create({
+        data: {
+          userId,
+          key: h.key,
+          name: h.name,
+          emoji: h.emoji,
+          description: h.description,
+          isDefault: true,
+          sortOrder: i,
+        },
+      })
+    )
+  );
+
+  return created.map((h) => ({
+    key: h.key,
+    name: h.name,
+    emoji: h.emoji,
+    description: h.description,
+    isDefault: h.isDefault,
+  }));
+}
+
+function validateHabitScores(raw: unknown, categories: HabitCategory[]): HabitScores {
+  const result: HabitScores = {};
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
 
-  for (const cat of ACCOUNTABILITY_CATEGORIES) {
+  for (const cat of categories) {
     const entry = obj[cat.key];
     if (entry && typeof entry === 'object') {
       const e = entry as Record<string, unknown>;
@@ -64,7 +106,11 @@ function validateHabitScores(raw: unknown): HabitScores {
   return result;
 }
 
-async function callAccountabilityLlm(userText: string, previousFeedback?: string): Promise<CheckInResult> {
+async function callAccountabilityLlm(
+  userText: string,
+  categories: HabitCategory[],
+  previousFeedback?: string
+): Promise<CheckInResult> {
   const endpoint = process.env.BREAKDOWN_LLM_URL;
   const apiKey = process.env.BREAKDOWN_LLM_API_KEY;
   const model = process.env.BREAKDOWN_LLM_MODEL || 'deepseek-chat';
@@ -73,15 +119,14 @@ async function callAccountabilityLlm(userText: string, previousFeedback?: string
     throw new Error('Accountability AI not configured. Set BREAKDOWN_LLM_URL and BREAKDOWN_LLM_API_KEY.');
   }
 
+  const systemPrompt = buildSystemPrompt(categories);
+
   const messages: ChatMessage[] = [
-    { role: 'system', content: ACCOUNTABILITY_SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
   ];
 
   if (previousFeedback) {
-    messages.push({
-      role: 'assistant',
-      content: previousFeedback,
-    });
+    messages.push({ role: 'assistant', content: previousFeedback });
   }
 
   messages.push({ role: 'user', content: userText });
@@ -110,7 +155,7 @@ async function callAccountabilityLlm(userText: string, previousFeedback?: string
 
   const feedback = typeof parsed.feedback === 'string' ? parsed.feedback.trim() : '';
   const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
-  const habits = validateHabitScores(parsed.habits);
+  const habits = validateHabitScores(parsed.habits, categories);
 
   return { feedback, summary, habits };
 }
@@ -130,6 +175,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
+    const categories = await ensureUserHabits(userId);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -137,15 +184,16 @@ export async function POST(req: NextRequest) {
       where: { userId_date: { userId, date: today } },
     });
 
+    const existingScores = (existing?.habitScores as HabitScores) || {};
     const previousFeedback = existing?.feedback || undefined;
 
-    const result = await callAccountabilityLlm(rawText, previousFeedback);
+    const result = await callAccountabilityLlm(rawText, categories, previousFeedback);
 
     if (existing) {
-      const mergedHabits = { ...(existing.habitScores as HabitScores) };
-      for (const cat of ACCOUNTABILITY_CATEGORIES) {
+      const mergedHabits: HabitScores = { ...existingScores };
+      for (const cat of categories) {
         const newScore = result.habits[cat.key];
-        if (newScore.score !== null) {
+        if (newScore && newScore.score !== null) {
           mergedHabits[cat.key] = newScore;
         }
       }
@@ -164,7 +212,7 @@ export async function POST(req: NextRequest) {
         id: updated.id,
         feedback: result.feedback,
         summary: result.summary,
-        habits: mergedHabits,
+        habitScores: mergedHabits,
         isUpdate: true,
       });
     }
@@ -184,7 +232,7 @@ export async function POST(req: NextRequest) {
       id: created.id,
       feedback: result.feedback,
       summary: result.summary,
-      habits: result.habits,
+      habitScores: result.habits,
       isUpdate: false,
     }, { status: 201 });
   } catch (error) {
@@ -221,7 +269,7 @@ export async function GET(req: NextRequest) {
         where: { userId, date: { gte: from, lte: to } },
         orderBy: { date: 'desc' },
       });
-      return NextResponse.json(entries.map((e) => ({ ...e, habitScores: e.habitScores as HabitScores })));
+      return NextResponse.json(entries.map((e) => ({ ...e, date: e.date.toISOString(), habitScores: e.habitScores as HabitScores })));
     }
 
     const today = new Date();
@@ -229,7 +277,7 @@ export async function GET(req: NextRequest) {
     const entry = await prisma.dailyCheckIn.findUnique({
       where: { userId_date: { userId, date: today } },
     });
-    return NextResponse.json(entry ? { ...entry, habitScores: entry.habitScores as HabitScores } : null);
+    return NextResponse.json(entry ? { ...entry, date: entry.date.toISOString(), habitScores: entry.habitScores as HabitScores } : null);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch check-ins';
     return NextResponse.json({ error: message }, { status: 500 });

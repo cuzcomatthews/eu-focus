@@ -20,13 +20,6 @@ type PromptHistoryItem = {
   at: string;
 };
 
-type Habit = {
-  id: string;
-  name: string;
-  emoji?: string;
-  color: string;
-};
-
 type Props = {
   onTasksCreated?: () => void;
 };
@@ -74,37 +67,9 @@ export default function BreakItDownPanel({ onTasksCreated }: Props) {
   const [selectedModel, setSelectedModel] = useState<'deepseek-chat' | 'deepseek-reasoner'>('deepseek-chat');
 
   const [showApproveModal, setShowApproveModal] = useState(false);
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [selectedHabitId, setSelectedHabitId] = useState('');
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
 
   const leafNodes = useMemo(() => (tree ? collectLeafNodes(tree) : []), [tree]);
-
-  useEffect(() => {
-    if (!showApproveModal) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchHabits = async () => {
-      const response = await fetch('/api/habits');
-      if (!response.ok || cancelled) {
-        return;
-      }
-      const data = (await response.json()) as Habit[];
-      if (!cancelled) {
-        setHabits(data);
-        setSelectedHabitId((current) => current || data[0]?.id || '');
-      }
-    };
-
-    void fetchHabits();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [showApproveModal]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((current) => {
@@ -171,7 +136,7 @@ export default function BreakItDownPanel({ onTasksCreated }: Props) {
   };
 
   const handleApprove = async () => {
-    if (!sessionId || !selectedHabitId) {
+    if (!sessionId) {
       return;
     }
 
@@ -182,7 +147,7 @@ export default function BreakItDownPanel({ onTasksCreated }: Props) {
       const response = await fetch('/api/breakdown/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, habitId: selectedHabitId }),
+        body: JSON.stringify({ sessionId }),
       });
 
       const data = await response.json();
@@ -377,24 +342,8 @@ export default function BreakItDownPanel({ onTasksCreated }: Props) {
           <div className={styles.modal} onClick={(event) => event.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h3>Confirm Task Creation</h3>
-              <p>Only leaf tasks will be created and assigned to one habit.</p>
+              <p>Only leaf tasks will be created.</p>
             </div>
-
-            <label className={styles.modalLabel} htmlFor="breakdown-habit-selector">
-              Select Habit
-            </label>
-            <select
-              id="breakdown-habit-selector"
-              className={styles.modalSelect}
-              value={selectedHabitId}
-              onChange={(event) => setSelectedHabitId(event.target.value)}
-            >
-              {habits.map((habit) => (
-                <option key={habit.id} value={habit.id}>
-                  {habit.emoji || '📚'} {habit.name}
-                </option>
-              ))}
-            </select>
 
             <div className={styles.leafList}>
               {leafNodes.map((leaf, index) => (
@@ -421,7 +370,7 @@ export default function BreakItDownPanel({ onTasksCreated }: Props) {
               <button
                 className={styles.modalConfirm}
                 onClick={handleApprove}
-                disabled={!selectedHabitId || isSubmittingApproval}
+                disabled={isSubmittingApproval}
               >
                 {isSubmittingApproval ? 'Creating...' : 'Confirm & Create Tasks'}
               </button>
