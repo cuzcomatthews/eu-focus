@@ -1,0 +1,22 @@
+{
+  "name": "EU FOCUS",
+  "short_name": "EU FOCUS",
+  "description": "Anti-procrastination timer with Pomodoro, ambient sounds, and accountability.",
+  "start_url": "/focus",
+  "display": "standalone",
+  "background_color": "#191919",
+  "theme_color": "#191919",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

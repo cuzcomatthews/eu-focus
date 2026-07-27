@@ -1,3 +1,4 @@
+$content = @'
 'use client';
 
 import { useSession, signOut } from "next-auth/react";
@@ -192,3 +193,5 @@ export default function DashboardLayout({
     </div>
   );
 }
+'@
+Set-Content -Path "C:\Users\Matt\Desktop\EU FOCUS\eu-focus\src\app\(dashboard)\layout.tsx" -Value $content -NoNewline

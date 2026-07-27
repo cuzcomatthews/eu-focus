@@ -18,12 +18,14 @@ import {
   Eye,
   EyeOff,
   ListMusic,
+  PictureInPicture2,
   SkipBack,
   SkipForward,
 } from 'lucide-react';
 import { useTimerStore } from '@/stores/timerStore';
 import StreakCelebration from '@/components/StreakCelebration';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { usePiPTimer } from '@/components/PiPTimer';
 import styles from './focus.module.css';
 
 interface Task {
@@ -185,6 +187,8 @@ export default function FocusPage() {
     completeEarly,
     reset,
   } = useTimerStore();
+
+  const { supported: pipSupported, isOpen: pipOpen, open: openPiP, close: closePiP } = usePiPTimer();
 
   const { playPop, playSuccess, playAlert } = useSoundEffects();
 
@@ -573,6 +577,13 @@ export default function FocusPage() {
                 <button className={`${styles.audioBtn} ${isFullLofiMode ? styles.audioBtnActive : ''}`} onClick={() => setIsFullLofiMode((prev) => !prev)}>
                   {isFullLofiMode ? <Eye size={13} /> : <EyeOff size={13} />}
                   Full LoFi
+                </button>
+              )}
+
+              {pipSupported && (
+                <button className={`${styles.audioBtn} ${pipOpen ? styles.audioBtnActive : ''}`} onClick={pipOpen ? closePiP : openPiP}>
+                  <PictureInPicture2 size={13} />
+                  {pipOpen ? 'Close PiP' : 'Floating Timer'}
                 </button>
               )}
             </div>
