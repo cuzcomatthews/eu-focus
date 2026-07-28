@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Settings as SettingsIcon, Globe, Clock, User, Save, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Clock, User, Save, LogOut, Bell, BellOff } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useTimerStore } from '@/stores/timerStore';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -15,6 +16,7 @@ export default function SettingsPage() {
   const [longBreak, setLongBreak] = useState(15);
   const [name, setName] = useState(() => session?.user?.name || '');
   const [saved, setSaved] = useState(false);
+  const { supported: pushSupported, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
 
   const saveSettings = async () => {
     setDurations(focus, breakMin);
@@ -98,6 +100,37 @@ export default function SettingsPage() {
           <input style={{ ...s.input, opacity: 0.6 }} value={session?.user?.email || ''} disabled />
         </div>
       </div>
+
+      {/* Push Notifications */}
+      {pushSupported && (
+        <div style={s.card}>
+          <div style={s.title}><Bell size={18} /> Notifications</div>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+            Receive push notifications when your pomodoro session completes — even when the app is closed.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={isSubscribed ? unsubscribe : subscribe}
+              disabled={pushLoading}
+              style={{
+                ...s.btn,
+                ...(isSubscribed ? { background: 'rgba(88, 204, 2, 0.12)', color: '#58cc02', border: '1px solid rgba(88, 204, 2, 0.3)' } : s.primary),
+                minWidth: '160px',
+                justifyContent: 'center',
+              }}
+            >
+              {isSubscribed ? (
+                <><BellOff size={14} /> Disable Notifications</>
+              ) : (
+                <><Bell size={14} /> {pushLoading ? 'Enabling...' : 'Enable Notifications'}</>
+              )}
+            </button>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {isSubscribed ? 'Notifications active' : 'Notifications disabled'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Save */}
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

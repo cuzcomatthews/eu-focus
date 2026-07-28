@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { sendPushNotification } from '@/lib/push';
 
 // POST — record a pomodoro completion
 export async function POST(req: NextRequest) {
@@ -174,6 +175,12 @@ export async function POST(req: NextRequest) {
       }
     }
   }
+
+  // Send push notification
+  const taskTitle = taskId
+    ? (await prisma.task.findUnique({ where: { id: taskId }, select: { title: true } }))?.title || 'your task'
+    : 'your session';
+  sendPushNotification(userId, 'Pomodoro completed!', `${durationMinutes || 25}min focused on "${taskTitle}"`);
 
   return NextResponse.json({ pomodoroSession, streak: globalStreakResult }, { status: 201 });
 }

@@ -20,6 +20,8 @@
   bottom: 0;
   z-index: 40;
   transition: transform var(--transition-base);
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .sidebarCollapsed {
@@ -274,6 +276,7 @@
 
 .pageContainer {
   padding: 20px 24px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -281,8 +284,8 @@
 /* Floating timer widget */
 .floatingTimerWrap {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0));
+  right: calc(24px + env(safe-area-inset-right, 0));
   z-index: 50;
   display: flex;
   align-items: stretch;
