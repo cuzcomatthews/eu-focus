@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getTodayString, getGuayaquilMidnight } from '@/lib/timezone';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -9,10 +10,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const dateStr = searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const dateStr = searchParams.get('date') || getTodayString();
 
   const logs = await prisma.dailyLog.findMany({
-    where: { userId: session.user.id, date: new Date(dateStr) },
+    where: { userId: session.user.id, date: getGuayaquilMidnight(dateStr) },
     orderBy: { startTime: 'asc' },
   });
 
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { date, blocks } = body;
+  const dateObj = getGuayaquilMidnight(date || getTodayString());
 
   const results = [];
   for (const b of blocks) {
@@ -34,13 +36,13 @@ export async function POST(req: NextRequest) {
       where: {
         userId_date_scheduleBlockId: {
           userId: session.user.id,
-          date: new Date(date),
+          date: dateObj,
           scheduleBlockId: b.scheduleBlockId || b.id || 'no-block-' + b.startTime,
         },
       },
       create: {
         userId: session.user.id,
-        date: new Date(date),
+        date: dateObj,
         scheduleBlockId: b.scheduleBlockId || b.id || undefined,
         startTime: b.startTime,
         endTime: b.endTime,

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Calendar, CheckCircle2, XCircle, Ban, TrendingUp, TrendingDown, Loader2, Send, BarChart3 } from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, Ban, TrendingUp, TrendingDown, Loader2, Send, BarChart3, Mic } from 'lucide-react';
+import { getTodayString, getGuayaquilDayOfWeek, getDateForDayOfWeek, getDateOfWeekOfDay, getLabelForDayOfWeek } from '@/lib/timezone';
+import MicButton from '@/components/MicButton';
 
 interface ScheduleBlock {
   id: string;
@@ -42,19 +44,22 @@ const MISS_REASONS = [
 export default function SchedulePage() {
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayString());
   const [statusModal, setStatusModal] = useState<{ block: ScheduleBlock; log?: DailyLog } | null>(null);
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiAnswer, setAiAnswer] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [stats, setStats] = useState<{ hoursCompleted: number; hoursMissed: number; totalCompleted: number; totalMissed: number } | null>(null);
-  const [selectedDay, setSelectedDay] = useState(new Date().getDay());
+  const [selectedDay, setSelectedDay] = useState(() => getGuayaquilDayOfWeek());
   const [predefinedQuestions] = useState([
     '¿Cómo estuvo mi semana?',
     '¿En qué pierdo más tiempo?',
     '¿Estoy mejorando?',
     '¿Cuántas horas trabajé vs perdí?',
   ]);
+  const [aiUpdateMsg, setAiUpdateMsg] = useState('');
+  const [aiUpdateLoading, setAiUpdateLoading] = useState(false);
+  const [aiUpdateResult, setAiUpdateResult] = useState('');
 
   const fetchSchedule = useCallback(async () => {
     const res = await fetch('/api/schedule');
@@ -74,7 +79,9 @@ export default function SchedulePage() {
 
   const fetchStats = useCallback(async () => {
     const today = new Date().toISOString().split('T')[0];
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    const sevenDaysAgo = getTodayString(d);
     const res = await fetch(`/api/schedule/stats?from=${sevenDaysAgo}&to=${today}`);
     if (res.ok) {
       const data = await res.json();
@@ -83,7 +90,7 @@ export default function SchedulePage() {
   }, []);
 
   useEffect(() => { fetchSchedule(); fetchStats(); }, [fetchSchedule, fetchStats]);
-  useEffect(() => { fetchDailyLogs(selectedDate); setSelectedDay(new Date(selectedDate).getDay()); }, [selectedDate, fetchDailyLogs]);
+  useEffect(() => { fetchDailyLogs(selectedDate); setSelectedDay(getGuayaquilDayOfWeek()); }, [selectedDate, fetchDailyLogs]);
 
   const saveBlockStatus = async (status: string, missedReason?: string) => {
     if (!statusModal) return;
@@ -112,7 +119,7 @@ export default function SchedulePage() {
   };
 
   const fillAllToday = async () => {
-    const todayBlocks = blocks.filter(b => b.dayOfWeek === new Date(selectedDate).getDay());
+    const todayBlocks = blocks.filter(b => b.dayOfWeek === getGuayaquilDayOfWeek(new Date(selectedDate + 'T12:00:00')));
     await fetch('/api/schedule/daily', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -152,7 +159,36 @@ export default function SchedulePage() {
   };
 
   const dayBlocks = blocks.filter(b => b.dayOfWeek === selectedDay);
-  const todayDate = new Date().toISOString().split('T')[0];
+  const sendAiUpdate = async () => {
+    const msg = aiUpdateMsg.trim();
+    if (!msg || aiUpdateLoading) return;
+    setAiUpdateLoading(true);
+    setAiUpdateResult('');
+
+    try {
+      const res = await fetch('/api/schedule/ai-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, date: selectedDate }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setAiUpdateResult(data.message || `Actualizado: ${data.updated}/${data.total} bloques.`);
+        setAiUpdateMsg('');
+        fetchDailyLogs(selectedDate);
+        fetchStats();
+      } else {
+        setAiUpdateResult(data.error || 'Error al actualizar.');
+      }
+    } catch {
+      setAiUpdateResult('Error de conexión.');
+    } finally {
+      setAiUpdateLoading(false);
+    }
+  };
+
+  const todayDate = getTodayString();
 
   const getBlockStatus = (block: ScheduleBlock) => {
     return dailyLogs.find(l => l.scheduleBlockId === block.id || (l.startTime === block.startTime && l.endTime === block.endTime));
@@ -190,9 +226,7 @@ export default function SchedulePage() {
           <button
             key={i}
             onClick={() => {
-              const d = new Date();
-              d.setDate(d.getDate() - (d.getDay() - i + 7) % 7);
-              setSelectedDate(d.toISOString().split('T')[0]);
+              setSelectedDate(getDateForDayOfWeek(i));
             }}
             style={{
               flex: 1,
@@ -211,11 +245,7 @@ export default function SchedulePage() {
           >
             <div style={{ fontSize: '10px', opacity: 0.7 }}>{day}</div>
             <div style={{ fontSize: '14px' }}>
-              {(() => {
-                const d = new Date();
-                d.setDate(d.getDate() - (d.getDay() - i + 7) % 7);
-                return d.getDate();
-              })()}
+              {getDateOfWeekOfDay(i)}
             </div>
           </button>
         ))}
@@ -255,6 +285,71 @@ export default function SchedulePage() {
           >
             <CheckCircle2 size={14} /> Marcar todo cumplido
           </button>
+        )}
+      </div>
+
+      {/* AI Update */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '14px',
+        padding: '14px',
+        marginBottom: '16px',
+      }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Mic size={14} /> Decile a la IA qué hiciste hoy
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            value={aiUpdateMsg}
+            onChange={(e) => setAiUpdateMsg(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendAiUpdate()}
+            placeholder="Ej: De 8 a 11 trabajé en la tesis, de 11 a 11:30 jugué videojuegos, de 11:30 a 1 trabajé..."
+            style={{
+              flex: 1,
+              minWidth: '200px',
+              padding: '10px 14px',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '10px',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+            }}
+          />
+          <MicButton onTranscription={(text) => setAiUpdateMsg((prev) => prev + (prev ? ' ' : '') + text)} />
+          <button
+            onClick={sendAiUpdate}
+            disabled={aiUpdateLoading || !aiUpdateMsg.trim()}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              background: 'var(--gradient-primary)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
+          >
+            {aiUpdateLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
+            {aiUpdateLoading ? '' : 'Enviar'}
+          </button>
+        </div>
+        {aiUpdateResult && (
+          <div style={{
+            marginTop: '8px',
+            padding: '10px',
+            borderRadius: '10px',
+            background: aiUpdateResult.includes('Error') ? 'rgba(239,68,68,0.08)' : 'rgba(88,204,2,0.08)',
+            color: aiUpdateResult.includes('Error') ? '#ef4444' : '#58cc02',
+            fontSize: '12px',
+            fontWeight: 600,
+          }}>
+            {aiUpdateResult}
+          </div>
         )}
       </div>
 
