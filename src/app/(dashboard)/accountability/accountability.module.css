@@ -135,6 +135,60 @@
   }
 }
 
+@media (max-width: 768px) {
+  .page {
+    gap: 14px;
+    padding: 0 4px;
+  }
+  .pageTitle {
+    font-size: 20px;
+  }
+  .inputCard,
+  .scoresCard,
+  .feedbackCard,
+  .querySection,
+  .chartSection {
+    padding: 16px;
+  }
+  .inputActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .submitBtn {
+    width: 100%;
+    justify-content: center;
+  }
+  .inputTextarea {
+    min-height: 100px;
+  }
+  .queryInputRow {
+    flex-direction: column;
+  }
+  .chartHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .scoreRow {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageTitle {
+    font-size: 18px;
+  }
+  .inputCard,
+  .scoresCard,
+  .feedbackCard,
+  .querySection,
+  .chartSection {
+    padding: 14px;
+    border-radius: 14px;
+  }
+}
+
 /* Feedback Card */
 .feedbackCard {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)), var(--bg-card);

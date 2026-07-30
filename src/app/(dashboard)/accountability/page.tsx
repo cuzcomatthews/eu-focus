@@ -290,121 +290,85 @@ export default function AccountabilityPage() {
         {error && <p style={{ color: 'var(--accent-danger)', fontSize: '13px', marginTop: '12px' }}>{error}</p>}
       </div>
 
-      {/* Two Column: Feedback + Scores */}
-      <div className={styles.contentGrid}>
-        <div className={styles.feedbackCard}>
-          <div className={styles.feedbackHeader}>
-            <div className={styles.feedbackAvatar}><Sparkles size={18} /></div>
-            <div><div className={styles.feedbackLabel}>Tu Coach</div></div>
-          </div>
-          {todayData ? (
-            <>
-              <div className={styles.feedbackText}>{todayData.feedback}</div>
-              <div className={styles.feedbackSummary}>{todayData.summary}</div>
-              {todayData.isUpdate && (
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                  Actualizado — puedes seguir añadiendo más durante el día
-                </div>
-              )}
-            </>
-          ) : (
-            <div className={styles.feedbackEmpty}>
-              <MessageCircle size={40} className={styles.feedbackEmptyIcon} />
-              <span>Escribe tu check-in diario para recibir feedback personalizado</span>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.scoresCard}>
-          <div className={styles.scoresHeaderRow}>
-            <span className={styles.scoresHeader}>Salud de Hábitos — Hoy</span>
-            <button className={styles.addHabitBtn} onClick={() => setShowHabitModal(true)} title="Agregar hábito personalizado">
-              <Plus size={14} />
-            </button>
-          </div>
-
-          {habits.length === 0 ? (
-            <div className={styles.scoresEmpty}>
-              <BarChart3 size={40} className={styles.feedbackEmptyIcon} />
-              <span>Sin datos de hoy todavía</span>
-            </div>
-          ) : (
-            habits.map((cat) => {
-              const h = todayData ? (todayData.habitScores as HabitScores)[cat.key] : null;
-              const score = h?.score ?? null;
-              return (
-                <div key={cat.key} className={styles.scoreRow}>
-                  <span className={styles.scoreEmoji}>{cat.emoji}</span>
-                  <div className={styles.scoreInfo}>
-                    <div className={styles.scoreLabelRow}>
-                      <span className={styles.scoreLabel}>{cat.name}</span>
-                      {!cat.isDefault && (
-                        <button
-                          className={styles.deleteHabitBtn}
-                          onClick={() => handleDeleteHabit(cat.id)}
-                          title="Eliminar hábito"
-                        >
-                          <X size={11} />
-                        </button>
-                      )}
-                    </div>
-                    <div className={styles.scoreBarWrap}>
-                      <div
-                        className={styles.scoreBarFill}
-                        style={{
-                          width: `${score ?? 0}%`,
-                          background: score !== null
-                            ? `linear-gradient(90deg, ${getBarColor(cat.key)}, ${getBarColor(cat.key)}88)`
-                            : 'transparent',
-                        }}
-                      />
-                    </div>
-                    {h?.notes && <div className={styles.scoreNotes}>{h.notes}</div>}
-                  </div>
-                  {score !== null ? (
-                    <span className={styles.scoreValue} style={{ color: getScoreColor(score) }}>{score}%</span>
-                  ) : (
-                    <span className={styles.scoreNoData}>—</span>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Query Section */}
-      <div className={styles.querySection}>
-        <div className={styles.queryHeader}>
-          <TrendingUp size={16} color="var(--accent-warning)" />
-          <span className={styles.queryHeaderTitle}>Consultar mi historial</span>
-        </div>
-        <div className={styles.quickPrompts}>
-          {QUICK_PROMPTS.map((prompt) => (
-            <button key={prompt} className={styles.quickPromptBtn} onClick={() => handleQuery(prompt)}>{prompt}</button>
-          ))}
-        </div>
-        <div className={styles.queryInputRow}>
-          <input
-            className={styles.queryInput}
-            value={queryQuestion}
-            onChange={(e) => setQueryQuestion(e.target.value)}
-            placeholder="Ej: ¿Cómo me fue en académico este mes?"
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleQuery(); } }}
-          />
-          <button className={styles.queryAskBtn} onClick={() => handleQuery()} disabled={isQuerying || !queryQuestion.trim()}>
-            {isQuerying ? <Loader2 size={14} className={styles.submitBtnSpinner} /> : <Send size={14} />}
-            Preguntar
+      {/* Health Scores */}
+      <div className={styles.scoresCard}>
+        <div className={styles.scoresHeaderRow}>
+          <span className={styles.scoresHeader}>Salud de Hábitos — Hoy</span>
+          <button className={styles.addHabitBtn} onClick={() => setShowHabitModal(true)} title="Agregar hábito personalizado">
+            <Plus size={14} />
           </button>
         </div>
-        {queryResult && (
+
+        {habits.length === 0 ? (
+          <div className={styles.scoresEmpty}>
+            <BarChart3 size={40} className={styles.feedbackEmptyIcon} />
+            <span>Sin datos de hoy todavía</span>
+          </div>
+        ) : (
+          habits.map((cat) => {
+            const h = todayData ? (todayData.habitScores as HabitScores)[cat.key] : null;
+            const score = h?.score ?? null;
+            return (
+              <div key={cat.key} className={styles.scoreRow}>
+                <span className={styles.scoreEmoji}>{cat.emoji}</span>
+                <div className={styles.scoreInfo}>
+                  <div className={styles.scoreLabelRow}>
+                    <span className={styles.scoreLabel}>{cat.name}</span>
+                    {!cat.isDefault && (
+                      <button
+                        className={styles.deleteHabitBtn}
+                        onClick={() => handleDeleteHabit(cat.id)}
+                        title="Eliminar hábito"
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
+                  </div>
+                  <div className={styles.scoreBarWrap}>
+                    <div
+                      className={styles.scoreBarFill}
+                      style={{
+                        width: `${score ?? 0}%`,
+                        background: score !== null
+                          ? `linear-gradient(90deg, ${getBarColor(cat.key)}, ${getBarColor(cat.key)}88)`
+                          : 'transparent',
+                      }}
+                    />
+                  </div>
+                  {h?.notes && <div className={styles.scoreNotes}>{h.notes}</div>}
+                </div>
+                {score !== null ? (
+                  <span className={styles.scoreValue} style={{ color: getScoreColor(score) }}>{score}%</span>
+                ) : (
+                  <span className={styles.scoreNoData}>—</span>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Coach Feedback */}
+      <div className={styles.feedbackCard}>
+        <div className={styles.feedbackHeader}>
+          <div className={styles.feedbackAvatar}><Sparkles size={18} /></div>
+          <div><div className={styles.feedbackLabel}>Tu Coach</div></div>
+        </div>
+        {todayData ? (
           <>
-            <div className={styles.queryAnswer}>{queryResult.answer}</div>
-            <div className={styles.queryMeta}>
-              <span>{queryResult.dataPoints} días analizados</span>
-              <span>{queryResult.dateRange.from} → {queryResult.dateRange.to}</span>
-            </div>
+            <div className={styles.feedbackText}>{todayData.feedback}</div>
+            <div className={styles.feedbackSummary}>{todayData.summary}</div>
+            {todayData.isUpdate && (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                Actualizado — puedes seguir añadiendo más durante el día
+              </div>
+            )}
           </>
+        ) : (
+          <div className={styles.feedbackEmpty}>
+            <MessageCircle size={40} className={styles.feedbackEmptyIcon} />
+            <span>Escribe tu check-in diario para recibir feedback personalizado</span>
+          </div>
         )}
       </div>
 
@@ -446,6 +410,41 @@ export default function AccountabilityPage() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Query Section */}
+      <div className={styles.querySection}>
+        <div className={styles.queryHeader}>
+          <TrendingUp size={16} color="var(--accent-warning)" />
+          <span className={styles.queryHeaderTitle}>Consultar mi historial</span>
+        </div>
+        <div className={styles.quickPrompts}>
+          {QUICK_PROMPTS.map((prompt) => (
+            <button key={prompt} className={styles.quickPromptBtn} onClick={() => handleQuery(prompt)}>{prompt}</button>
+          ))}
+        </div>
+        <div className={styles.queryInputRow}>
+          <input
+            className={styles.queryInput}
+            value={queryQuestion}
+            onChange={(e) => setQueryQuestion(e.target.value)}
+            placeholder="Ej: ¿Cómo me fue en académico este mes?"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleQuery(); } }}
+          />
+          <button className={styles.queryAskBtn} onClick={() => handleQuery()} disabled={isQuerying || !queryQuestion.trim()}>
+            {isQuerying ? <Loader2 size={14} className={styles.submitBtnSpinner} /> : <Send size={14} />}
+            Preguntar
+          </button>
+        </div>
+        {queryResult && (
+          <>
+            <div className={styles.queryAnswer}>{queryResult.answer}</div>
+            <div className={styles.queryMeta}>
+              <span>{queryResult.dataPoints} días analizados</span>
+              <span>{queryResult.dateRange.from} → {queryResult.dateRange.to}</span>
+            </div>
+          </>
         )}
       </div>
 

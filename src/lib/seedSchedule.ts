@@ -39,9 +39,7 @@ const WEEKLY_SCHEDULE = [
 ];
 
 export async function seedScheduleForUser(userId: string) {
-  const existing = await prisma.scheduleBlock.count({ where: { userId } });
-  if (existing > 0) return;
-
+  await prisma.scheduleBlock.deleteMany({ where: { userId } });
   await prisma.scheduleBlock.createMany({
     data: WEEKLY_SCHEDULE.map((block) => ({
       userId,

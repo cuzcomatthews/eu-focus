@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { BarChart3, Clock, Flame, Zap, Target, TrendingUp, Download, Calendar } from 'lucide-react';
+import styles from './analytics.module.css';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, AreaChart, Area, LineChart, Line, Legend
@@ -42,81 +43,59 @@ export default function AnalyticsPage() {
     minutes: min,
   })) || [];
 
-  const s = {
-    card: { background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '24px' } as React.CSSProperties,
-    title: { fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' } as React.CSSProperties,
-    stat: { display: 'flex', alignItems: 'center', gap: '16px' } as React.CSSProperties,
-    statIcon: { width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' } as React.CSSProperties,
-    statNum: { fontSize: '28px', fontWeight: 800, lineHeight: 1 } as React.CSSProperties,
-    statLabel: { fontSize: '12px', color: 'var(--text-muted)' } as React.CSSProperties,
-    statSub: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' } as React.CSSProperties,
-  };
-
   const exportCsv = () => {
     window.open('/api/analytics/export', '_blank');
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>
           <BarChart3 size={24} /> Analytics
         </h1>
-        <button onClick={exportCsv} style={{ 
-          background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', 
-          padding: '8px 16px', borderRadius: '8px', color: 'var(--text-primary)',
-          display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px'
-        }}>
+        <button onClick={exportCsv} className={styles.exportBtn}>
           <Download size={16} /> Export CSV
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div style={s.card}>
-          <div style={s.stat}>
-            <div style={{ ...s.statIcon, background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }}><Target size={24} /></div>
-            <div>
-              <div style={s.statNum}>{data?.recentPomodoros || 0}</div>
-              <div style={s.statLabel}>Pomodoros (30d)</div>
-              <div style={s.statSub}>{data?.totalPomodoros || 0} all time</div>
-            </div>
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)' }}><Target size={24} /></div>
+          <div>
+            <div className={styles.statValue}>{data?.recentPomodoros || 0}</div>
+            <div className={styles.statLabel}>Pomodoros (30d)</div>
+            <div className={styles.statSub}>{data?.totalPomodoros || 0} all time</div>
           </div>
         </div>
-        <div style={s.card}>
-          <div style={s.stat}>
-            <div style={{ ...s.statIcon, background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-success)' }}><Clock size={24} /></div>
-            <div>
-              <div style={s.statNum}>{recentHours}h</div>
-              <div style={s.statLabel}>Focus (30d)</div>
-              <div style={s.statSub}>{totalHours}h all time</div>
-            </div>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--accent-success)' }}><Clock size={24} /></div>
+          <div>
+            <div className={styles.statValue}>{recentHours}h</div>
+            <div className={styles.statLabel}>Focus (30d)</div>
+            <div className={styles.statSub}>{totalHours}h all time</div>
           </div>
         </div>
-        <div style={s.card}>
-          <div style={s.stat}>
-            <div style={{ ...s.statIcon, background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-warning)' }}><Flame size={24} /></div>
-            <div>
-              <div style={s.statNum}>{data?.uniqueDaysLast7d || 0}/7</div>
-              <div style={s.statLabel}>Days Active</div>
-              <div style={s.statSub}>last 7 days</div>
-            </div>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-warning)' }}><Flame size={24} /></div>
+          <div>
+            <div className={styles.statValue}>{data?.uniqueDaysLast7d || 0}/7</div>
+            <div className={styles.statLabel}>Days Active</div>
+            <div className={styles.statSub}>last 7 days</div>
           </div>
         </div>
-        <div style={s.card}>
-          <div style={s.stat}>
-            <div style={{ ...s.statIcon, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }}><Calendar size={24} /></div>
-            <div>
-              <div style={s.statNum}>{data?.dailyAvgMinutes || 0}m</div>
-              <div style={s.statLabel}>Daily Average</div>
-              <div style={s.statSub}>last 30 days</div>
-            </div>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-info)' }}><Calendar size={24} /></div>
+          <div>
+            <div className={styles.statValue}>{data?.dailyAvgMinutes || 0}m</div>
+            <div className={styles.statLabel}>Daily Average</div>
+            <div className={styles.statSub}>last 30 days</div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-        <div style={s.card}>
-          <div style={s.title}><Zap size={14} /> Tendencias de Hábitos (30 Días)</div>
+      <div className={styles.chartsGrid}>
+        <div className={styles.chartCard}>
+          <div className={styles.chartTitle}><Zap size={14} /> Tendencias de Hábitos (30 Días)</div>
           {data?.habitsTrend && Object.keys(data.habitsTrend).length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart
@@ -162,8 +141,8 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        <div style={s.card}>
-          <div style={s.title}><TrendingUp size={14} /> Peak Hours (Last 30 Days)</div>
+        <div className={styles.chartCard}>
+          <div className={styles.chartTitle}><TrendingUp size={14} /> Peak Hours (Last 30 Days)</div>
           {data?.peakHours && data.peakHours.some(h => h > 0) ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={peakData}>
@@ -178,8 +157,8 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div style={s.card}>
-        <div style={s.title}><Flame size={14} /> Focus History (Last 14 Days)</div>
+      <div className={styles.fullCard}>
+        <div className={styles.chartTitle}><Flame size={14} /> Focus History (Last 14 Days)</div>
         {data?.heatmap && Object.keys(data.heatmap).length > 0 ? (
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart 
