@@ -34,7 +34,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/focus-icon.ico" sizes="any" />
+        <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+        <link rel="shortcut icon" href="/focus-icon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
         <meta name="theme-color" content="#191919" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
