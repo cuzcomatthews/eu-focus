@@ -11,6 +11,16 @@ export function getGuayaquilHour(date: Date = new Date()): number {
   );
 }
 
+export function getCurrentGuayaquilTime(): string {
+  const now = new Date();
+  const h = getGuayaquilHour(now).toString().padStart(2, '0');
+  const m = parseInt(
+    now.toLocaleString('es-EC', { timeZone: TIMEZONE, minute: '2-digit', hour12: false }),
+    10
+  ).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 export function getTodayString(date: Date = new Date()): string {
   const parts = date
     .toLocaleDateString('es-EC', { timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
