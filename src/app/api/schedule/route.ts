@@ -9,6 +9,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  if (searchParams.get('reset') === 'true') {
+    await prisma.scheduleBlock.deleteMany({ where: { userId: session.user.id } });
+  }
+
   await seedScheduleForUser(session.user.id);
 
   const blocks = await prisma.scheduleBlock.findMany({
