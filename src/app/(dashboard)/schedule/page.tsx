@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { Calendar, CheckCircle2, XCircle, Ban, Loader2, Send, BarChart3, Mic, RefreshCw, Clock } from 'lucide-react';
 import { getTodayString, getGuayaquilDayOfWeek, getDateForDayOfWeek, getDateOfWeekOfDay } from '@/lib/timezone';
 import MicButton from '@/components/MicButton';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import schedStyles from './schedule.module.css';
+import { isAdvancedUser } from '@/lib/featureGating';
 
 interface ScheduleBlock {
   id: string;
@@ -35,6 +39,17 @@ const CATEGORIES: Record<string, { label: string; color: string }> = {
 };
 
 export default function SchedulePage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (session && !isAdvancedUser(session.user?.email)) {
+      router.replace('/dashboard');
+    }
+  }, [session, router]);
+
+  if (!session || !isAdvancedUser(session.user?.email)) return null;
+
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => getTodayString());
@@ -154,7 +169,7 @@ export default function SchedulePage() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 400px)', gap: '16px' }}>
+      <div className={schedStyles.layout}>
         {/* LEFT COLUMN */}
         <div>
           {/* Day selector */}

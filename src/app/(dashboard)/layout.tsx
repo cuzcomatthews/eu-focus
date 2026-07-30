@@ -23,18 +23,22 @@ import {
 } from "lucide-react";
 import { useTimerStore } from "@/stores/timerStore";
 import { usePiPTimer } from "@/components/PiPTimer";
+import { isAdvancedUser } from "@/lib/featureGating";
 import styles from "./dashboard.module.css";
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/workspace", label: "Workspace", icon: KanbanSquare },
   { href: "/focus", label: "Focus Garden", icon: TreePine },
-  { href: "/schedule", label: "Horario", icon: Calendar },
-  { href: "/accountability", label: "Accountability", icon: MessageCircle },
   { href: "/squads", label: "Squads", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const ADVANCED_NAV_ITEMS = [
+  { href: "/schedule", label: "Horario", icon: Calendar },
+  { href: "/accountability", label: "Accountability", icon: MessageCircle },
 ];
 
 export default function DashboardLayout({
@@ -49,6 +53,9 @@ export default function DashboardLayout({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { phase, timeRemaining, activeTaskTitle, restoreFromStorage } = useTimerStore();
   const { supported: pipSupported, isOpen: pipOpen, open: openPiP, close: closePiP } = usePiPTimer();
+
+  const advanced = isAdvancedUser(session?.user?.email);
+  const navItems = advanced ? [...ADVANCED_NAV_ITEMS, ...BASE_NAV_ITEMS] : BASE_NAV_ITEMS;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -141,7 +148,7 @@ export default function DashboardLayout({
             </span>
             <button
               className={styles.logoutBtn}
-              onClick={() => signOut({ callbackUrl: "https://eu-focus.vercel.app/login" })}
+              onClick={() => signOut({ callbackUrl: window.location.origin + '/login' })}
               title="Sign out"
             >
               <LogOut size={16} />

@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import styles from './accountability.module.css';
 import MicButton from '@/components/MicButton';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { isAdvancedUser } from '@/lib/featureGating';
 
 type HabitCategory = {
   id: string;
@@ -83,6 +86,17 @@ function getBarColor(key: string): string {
 }
 
 export default function AccountabilityPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (session && !isAdvancedUser(session.user?.email)) {
+      router.replace('/dashboard');
+    }
+  }, [session, router]);
+
+  if (!session || !isAdvancedUser(session.user?.email)) return null;
+
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [todayData, setTodayData] = useState<CheckInData | null>(null);

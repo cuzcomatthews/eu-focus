@@ -138,7 +138,7 @@ export default function SettingsPage() {
           <Save size={14} /> Save Settings
         </button>
         {saved && <span style={{ color: 'var(--accent-success)', fontSize: '13px', fontWeight: 500 }}>Settings saved!</span>}
-        <button style={{ ...s.btn, ...s.danger, marginLeft: 'auto' }} onClick={() => signOut({ callbackUrl: 'https://eu-focus.vercel.app/login' })}>
+        <button style={{ ...s.btn, ...s.danger, marginLeft: 'auto' }} onClick={() => signOut({ callbackUrl: window.location.origin + '/login' })}>
           <LogOut size={14} /> Sign Out
         </button>
       </div>
