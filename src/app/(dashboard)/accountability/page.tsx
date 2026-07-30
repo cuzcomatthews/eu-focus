@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import styles from './accountability.module.css';
+import MicButton from '@/components/MicButton';
 
 type HabitCategory = {
   id: string;
@@ -270,17 +271,20 @@ export default function AccountabilityPage() {
             <Calendar size={12} />
             Cuéntame cómo te fue hoy — la IA analiza tus hábitos automáticamente
           </span>
-          <button
-            className={styles.submitBtn}
-            onClick={handleSubmit}
-            disabled={isSubmitting || !text.trim()}
-          >
-            {isSubmitting ? (
-              <><Loader2 size={15} className={styles.submitBtnSpinner} /> Analizando...</>
-            ) : (
-              <><Sparkles size={15} /> Enviar Check-in</>
-            )}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <MicButton onTranscription={(txt) => setText((prev: string) => prev + (prev ? ' ' : '') + txt)} />
+            <button
+              className={styles.submitBtn}
+              onClick={handleSubmit}
+              disabled={isSubmitting || !text.trim()}
+            >
+              {isSubmitting ? (
+                <><Loader2 size={15} className={styles.submitBtnSpinner} /> Analizando...</>
+              ) : (
+                <><Sparkles size={15} /> Enviar Check-in</>
+              )}
+            </button>
+          </div>
         </div>
 
         {error && <p style={{ color: 'var(--accent-danger)', fontSize: '13px', marginTop: '12px' }}>{error}</p>}
