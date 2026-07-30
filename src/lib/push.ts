@@ -9,7 +9,7 @@ async function getWebPush() {
   return webpush;
 }
 
-export async function sendPushNotification(userId: string, title: string, body: string) {
+export async function sendPushNotification(userId: string, title: string, body: string, data?: Record<string, unknown>) {
   try {
     const webpush = await getWebPush();
 
@@ -25,7 +25,7 @@ export async function sendPushNotification(userId: string, title: string, body: 
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       tag: 'eu-focus-timer',
-      data: { url: '/focus' },
+      data: data || {},
     });
 
     const results = await Promise.allSettled(

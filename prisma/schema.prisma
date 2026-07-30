@@ -32,6 +32,9 @@ model User {
   dailyCheckIns DailyCheckIn[]
   accountabilityHabits AccountabilityHabit[]
   pushSubscriptions PushSubscription[]
+  notifications  Notification[]
+  scheduleBlocks ScheduleBlock[]
+  dailyLogs      DailyLog[]
 
   @@map("users")
 }
@@ -48,6 +51,57 @@ model PushSubscription {
 
   @@unique([userId, endpoint])
   @@map("push_subscriptions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model ScheduleBlock {
+  id        String @id @default(cuid())
+  userId    String @map("user_id")
+  dayOfWeek Int    @map("day_of_week")
+  startTime String @map("start_time")
+  endTime   String @map("end_time")
+  category  String
+  label     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dayOfWeek])
+  @@map("schedule_blocks")
+}
+
+model DailyLog {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  date            DateTime
+  scheduleBlockId String?  @map("schedule_block_id")
+  startTime       String   @map("start_time")
+  endTime         String   @map("end_time")
+  category        String
+  label           String?
+  status          String
+  missedReason    String?  @map("missed_reason")
+  notes           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, scheduleBlockId])
+  @@index([userId, date])
+  @@map("daily_logs")
 }
 
 model Habit {

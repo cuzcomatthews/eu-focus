@@ -16,9 +16,10 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  MoreHorizontal,
   MessageCircle,
   PictureInPicture2,
+  Bell,
+  Calendar,
 } from "lucide-react";
 import { useTimerStore } from "@/stores/timerStore";
 import { usePiPTimer } from "@/components/PiPTimer";
@@ -28,9 +29,11 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/workspace", label: "Workspace", icon: KanbanSquare },
   { href: "/focus", label: "Focus Garden", icon: TreePine },
+  { href: "/schedule", label: "Horario", icon: Calendar },
   { href: "/accountability", label: "Accountability", icon: MessageCircle },
   { href: "/squads", label: "Squads", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -152,9 +155,6 @@ export default function DashboardLayout({
       <main className={styles.mainContent}>
         <div className={styles.mobileTopBar}>
           <button className={styles.mobileTopBtn} onClick={() => setIsMobileSidebarOpen(true)} title="Open sidebar">
-            <MoreHorizontal size={20} />
-          </button>
-          <button className={styles.mobileTopBtn} onClick={() => setIsSidebarCollapsed((prev) => !prev)} title="Toggle sidebar width">
             <Menu size={20} />
           </button>
         </div>

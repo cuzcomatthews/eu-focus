@@ -1,0 +1,4 @@
+.page {
+  animation: fadeIn 0.3s ease;
+  max-width: 700px;
+}

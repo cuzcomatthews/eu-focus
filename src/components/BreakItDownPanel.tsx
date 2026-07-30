@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ChevronDown, ChevronRight, Sparkles, RefreshCcw, CheckCircle2, WandSparkles, Loader2, Brain, Zap, Calendar } from 'lucide-react';
 import styles from './BreakItDownPanel.module.css';
+import MicButton from './MicButton';
 
 type Stage = 'idle' | 'generating' | 'generated' | 'refining' | 'approved';
 
@@ -260,6 +261,9 @@ export default function BreakItDownPanel({ onTasksCreated }: Props) {
             placeholder="Example: Launch my personal portfolio website with a clear case-study page and contact funnel"
             rows={4}
           />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <MicButton onTranscription={(text) => setPrompt((prev) => prev + (prev ? ' ' : '') + text)} />
+          </div>
 
           <button
             className={styles.generateBtn}
