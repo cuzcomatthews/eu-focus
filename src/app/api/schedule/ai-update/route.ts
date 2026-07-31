@@ -148,7 +148,6 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: LLM_MODEL,
         temperature: 0.3,
-        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: dateContext },
@@ -164,13 +163,22 @@ export async function POST(req: NextRequest) {
     }
 
     const data = (await llmRes.json()) as LlmResponseShape;
+
+    console.log('Full DeepSeek response:', JSON.stringify(data).slice(0, 800));
+
+    if (!data.choices?.[0]) {
+      console.error('DeepSeek returned no choices');
+      return NextResponse.json({ error: 'La IA no pudo procesar el mensaje. Intenta con otras palabras.' }, { status: 500 });
+    }
+
     const raw = parseLlmText(data);
 
-    console.log('AI Update raw response:', raw.slice(0, 500));
-
     if (!raw) {
+      console.error('parseLlmText returned empty from:', JSON.stringify(data.choices[0].message).slice(0, 500));
       return NextResponse.json({ error: 'La IA no devolvió respuesta. Intenta con más detalle.' }, { status: 400 });
     }
+
+    console.log('Parsed content:', raw.slice(0, 500));
 
     let parsed;
     try {
