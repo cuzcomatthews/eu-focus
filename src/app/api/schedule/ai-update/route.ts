@@ -19,11 +19,12 @@ const DAY_MAP: Record<string, number> = {
 };
 
 type LlmResponseShape = {
-  choices?: Array<{ message?: { content?: string | Array<{ text?: string; type?: string }> } }>;
+  choices?: Array<{ message?: { content?: string | Array<{ text?: string; type?: string }>; reasoning_content?: string } }>;
 };
 
 function parseLlmText(data: LlmResponseShape): string {
-  const content = data.choices?.[0]?.message?.content;
+  const msg = data.choices?.[0]?.message;
+  const content = msg?.content;
   if (typeof content === 'string' && content.trim()) {
     return content;
   }
@@ -34,6 +35,16 @@ function parseLlmText(data: LlmResponseShape): string {
       .join('\n')
       .trim();
     if (text) return text;
+  }
+  // Fallback: DeepSeek reasoning models put JSON in reasoning_content
+  if (typeof msg?.reasoning_content === 'string' && msg.reasoning_content.trim()) {
+    const full = msg.reasoning_content;
+    const start = full.lastIndexOf('{');
+    const end = full.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      return full.slice(start, end + 1);
+    }
+    return full;
   }
   return '';
 }
@@ -148,6 +159,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: LLM_MODEL,
         temperature: 0.3,
+        reasoning: { enabled: false },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: dateContext },
