@@ -1,4 +1,4 @@
-const CACHE = 'eu-focus-v3';
+const CACHE = 'eu-focus-v4';
 
 const PRECACHE = [
   '/',
