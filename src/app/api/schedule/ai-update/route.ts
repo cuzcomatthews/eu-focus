@@ -38,6 +38,16 @@ function parseLlmText(data: LlmResponseShape): string {
   return '';
 }
 
+function repairJson(raw: string): string {
+  let fixed = raw.replace(/([{,]\s*)([a-zA-Z_]\w*)\s*:/g, '$1"$2":');
+  if (!fixed.trim().startsWith('{')) {
+    const start = fixed.indexOf('{');
+    const end = fixed.lastIndexOf('}');
+    if (start !== -1 && end > start) fixed = fixed.slice(start, end + 1);
+  }
+  return fixed;
+}
+
 function getDayOfWeek(): number {
   const now = new Date();
   const locale = now.toLocaleString('es-EC', { timeZone: 'America/Guayaquil', weekday: 'short' });
@@ -50,7 +60,8 @@ const SYSTEM_PROMPT = `Eres un asistente de productividad. Conviertes mensajes e
 ## REGLAS ABSOLUTAS
 
 1. Responde ÚNICA Y EXCLUSIVAMENTE con JSON válido entre llaves {}.
-2. No escribas markdown, explicaciones, ni texto fuera del JSON.
+2. TODAS las claves JSON DEBEN ir entre comillas dobles: "startTime", "endTime", etc. NUNCA sin comillas.
+3. No escribas markdown, explicaciones, ni texto fuera del JSON.
 3. Cada actualización debe tener EXACTAMENTE: "startTime", "endTime", "status", "missedReason".
 4. status DEBE ser uno de: "completed", "missed", "canceled".
 5. missedReason SOLO se pone si status es "missed". Valores válidos: "videojuegos", "redes_sociales", "ocio_general".
@@ -142,7 +153,7 @@ export async function POST(req: NextRequest) {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: dateContext },
         ],
-        max_tokens: 600,
+        max_tokens: 1000,
       }),
     });
 
@@ -164,9 +175,15 @@ export async function POST(req: NextRequest) {
     let parsed;
     try {
       parsed = parseJsonResponse(raw);
-    } catch (e) {
-      console.error('JSON parse error:', e instanceof Error ? e.message : e, 'Raw:', raw.slice(0, 300));
-      return NextResponse.json({ error: 'No se pudo interpretar la respuesta de la IA. Intenta con más detalle.' }, { status: 400 });
+    } catch {
+      // DeepSeek sometimes returns JSON with unquoted keys
+      try {
+        const repaired = repairJson(raw);
+        console.log('Repaired JSON:', repaired.slice(0, 300));
+        parsed = JSON.parse(repaired);
+      } catch {
+        return NextResponse.json({ error: 'No se pudo interpretar la respuesta de la IA. Intenta con más detalle.' }, { status: 400 });
+      }
     }
 
     const dateObj = getGuayaquilMidnight(date);
